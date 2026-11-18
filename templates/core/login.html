@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Iniciar sessão | Laboratório{% endblock %}
+{% block body_class %}login-page{% endblock %}
+
+{% block body %}
+<main class="login-layout">
+    <section class="login-brand" aria-label="Laboratório Catarina Domingos">
+        <a class="brand-lockup" href="/" aria-label="Laboratório Catarina Domingos">
+            <span class="brand-monogram" aria-hidden="true">CD</span>
+            <span class="brand-name">CATARINA<br>DOMINGOS</span>
+        </a>
+        <div class="brand-message">
+            <p class="eyebrow">GESTÃO DE LABORATÓRIO</p>
+            <h1>Precisão em cada detalhe.</h1>
+            <p>Uma visão clara do trabalho, da equipa e de cada prazo.</p>
+        </div>
+        <p class="brand-caption">BACKOFFICE · PRÓTESES DENTÁRIAS</p>
+    </section>
+
+    <section class="login-panel">
+        <div class="login-form-wrap">
+            <p class="eyebrow">ÁREA RESERVADA</p>
+            <h2>Bem-vindo de volta</h2>
+            <p class="login-intro">Inicie sessão para aceder ao painel do laboratório.</p>
+
+            <form id="login-form" class="login-form">
+                <div class="mb-3">
+                    <label class="form-label" for="email">E-mail</label>
+                    <input class="form-control form-control-lg" id="email" name="email"
+                           type="email" autocomplete="username" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label" for="password">Palavra-passe</label>
+                    <input class="form-control form-control-lg" id="password" name="password"
+                           type="password" autocomplete="current-password" required>
+                </div>
+                <p id="login-error" class="form-message" role="alert" hidden></p>
+                <button id="login-submit" class="btn btn-gold btn-lg w-100" type="submit">
+                    Iniciar sessão
+                </button>
+            </form>
+
+            <p class="login-note">Acesso reservado a utilizadores autorizados.</p>
+        </div>
+    </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/login.js' %}"></script>
+{% endblock %}

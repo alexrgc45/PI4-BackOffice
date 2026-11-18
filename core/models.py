@@ -302,3 +302,30 @@ class Utilizador(models.Model):
     class Meta:
         managed = False
         db_table = 'utilizador'
+
+
+class PermissaoColaborador(models.Model):
+    class Codigo(models.TextChoices):
+        RECECAO_TRABALHOS = "rececao_trabalhos", "Receção de trabalhos"
+
+    colaborador = models.ForeignKey(
+        Colaborador,
+        models.DO_NOTHING,
+        related_name="permissoes",
+    )
+    codigo = models.CharField(max_length=50, choices=Codigo.choices)
+    concedida_por = models.ForeignKey(
+        Utilizador,
+        models.DO_NOTHING,
+        related_name="permissoes_colaborador_concedidas",
+    )
+    criada_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "permissao_colaborador"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("colaborador", "codigo"),
+                name="uq_perm_colaborador_codigo",
+            ),
+        ]

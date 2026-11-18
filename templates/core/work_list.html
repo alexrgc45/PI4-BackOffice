@@ -1,0 +1,67 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Trabalhos | Laboratório{% endblock %}
+{% block breadcrumb_label %}Trabalhos{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">GESTÃO OPERACIONAL</p>
+            <h1 id="page-title">Trabalhos</h1>
+            <p class="page-subtitle">Consulte o estado e os prazos dos trabalhos do laboratório.</p>
+        </div>
+        <button class="btn btn-gold" id="refresh-works" type="button">Atualizar lista</button>
+    </div>
+
+    <section class="panel work-list-panel" aria-labelledby="work-list-heading">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">PRODUÇÃO DO LABORATÓRIO</p>
+                <h2 id="work-list-heading">Todos os trabalhos</h2>
+            </div>
+            <span class="panel-count" id="work-list-count">— trabalhos</span>
+        </div>
+
+        <div class="work-toolbar">
+            <div class="work-filter-group">
+                <label for="work-search">Pesquisar</label>
+                <input class="form-control" id="work-search" type="search"
+                       placeholder="Paciente, tipo ou número do trabalho">
+            </div>
+            <div class="work-filter-group">
+                <label for="work-state">Estado</label>
+                <select class="form-select" id="work-state">
+                    <option value="">Todos os estados</option>
+                </select>
+            </div>
+        </div>
+
+        <p class="dashboard-status work-list-status" id="work-list-status"
+           role="status" aria-live="polite">A carregar trabalhos…</p>
+
+        <div class="table-responsive">
+            <table class="table work-table admin-work-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Trabalho</th>
+                        <th scope="col">Paciente</th>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Prazo de entrega</th>
+                        <th scope="col">Próxima consulta</th>
+                    </tr>
+                </thead>
+                <tbody id="work-rows">
+                    <tr><td class="table-placeholder" colspan="6">A carregar trabalhos…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-work-list.js' %}"></script>
+{% endblock %}

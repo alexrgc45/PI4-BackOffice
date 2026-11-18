@@ -1,18 +1,114 @@
-{% extends "base.html" %}
+{% extends "core/admin_base.html" %}
+{% load static %}
 
-{% block title %}Início | Backoffice do Laboratório{% endblock %}
+{% block title %}Visão geral | Laboratório{% endblock %}
+{% block breadcrumb_label %}Visão geral{% endblock %}
 
-{% block content %}
-  <div class="mb-4">
-    <p class="text-primary text-uppercase fw-semibold small mb-2">Backoffice</p>
-    <h1 class="display-6 fw-semibold">Gestão do laboratório</h1>
-    <p class="text-secondary mb-0">O espaço de trabalho para acompanhar a atividade do laboratório de próteses dentárias.</p>
-  </div>
+{% block admin_content %}
+<section id="overview">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">PAINEL DE CONTROLO</p>
+            <h1>Visão geral</h1>
+            <p class="page-subtitle">Acompanhe o ritmo do laboratório e os próximos prazos.</p>
+        </div>
+        <p class="today-date" id="today-date"></p>
+    </section>
 
-  <div class="card border-0 shadow-sm">
-    <div class="card-body p-4">
-      <h2 class="h5">Projeto preparado</h2>
-      <p class="text-secondary mb-0">O Django está pronto para receber os módulos e ligar-se à base de dados Neon quando o esquema estiver confirmado.</p>
+    <section class="metric-grid" aria-label="Resumo do laboratório">
+        <article class="metric-card metric-highlight">
+            <div class="metric-card-top">
+                <span class="metric-label">Por aceitar</span>
+                <span class="metric-index">01</span>
+            </div>
+            <p class="metric-value" id="metric-pending">—</p>
+            <p class="metric-caption">Pedidos na receção</p>
+        </article>
+        <article class="metric-card">
+            <div class="metric-card-top">
+                <span class="metric-label">Em produção</span>
+                <span class="metric-index">02</span>
+            </div>
+            <p class="metric-value" id="metric-production">—</p>
+            <p class="metric-caption">Trabalhos em curso</p>
+        </article>
+        <article class="metric-card">
+            <div class="metric-card-top">
+                <span class="metric-label">Em standby</span>
+                <span class="metric-index">03</span>
+            </div>
+            <p class="metric-value" id="metric-standby">—</p>
+            <p class="metric-caption">A aguardar seguimento</p>
+        </article>
+        <article class="metric-card">
+            <div class="metric-card-top">
+                <span class="metric-label">Concluídos</span>
+                <span class="metric-index">04</span>
+            </div>
+            <p class="metric-value" id="metric-completed">—</p>
+            <p class="metric-caption">Trabalhos finalizados</p>
+        </article>
+    </section>
+
+    <p class="dashboard-status" id="dashboard-status" role="status" aria-live="polite">
+        A carregar dados do laboratório…
+    </p>
+
+    <div class="dashboard-grid">
+        <section class="panel work-panel" id="trabalhos" aria-labelledby="work-heading">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">PRAZOS DO LABORATÓRIO</p>
+                    <h2 id="work-heading">Prazos prioritários</h2>
+                </div>
+                <span class="panel-count" id="work-count">— trabalhos</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table work-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Trabalho</th>
+                            <th scope="col">Paciente</th>
+                            <th scope="col">Tipo</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Prazo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="work-rows">
+                        <tr><td class="table-placeholder" colspan="5">A carregar trabalhos…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="panel-footer">
+                <span id="work-summary">Os trabalhos são carregados através da API.</span>
+                <a href="{% url 'core:work_list' %}" class="text-link">Ver trabalhos <span aria-hidden="true">→</span></a>
+            </div>
+        </section>
+
+        <section class="panel reception-panel" id="rececao" aria-labelledby="reception-heading">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">ENTRADA DE PEDIDOS</p>
+                    <h2 id="reception-heading">Fila de receção</h2>
+                </div>
+                <span class="reception-indicator" aria-hidden="true"></span>
+            </div>
+            <div id="reception-list" class="reception-list">
+                <p class="table-placeholder">A carregar pedidos…</p>
+            </div>
+            <div class="panel-footer">
+                <span id="reception-summary">Pedidos que aguardam análise.</span>
+            </div>
+        </section>
     </div>
-  </div>
+
+    <section class="priority-strip" aria-label="Nota sobre os dados">
+        <span class="priority-mark" aria-hidden="true">i</span>
+        <p>Os indicadores são atualizados a partir dos registos existentes no sistema.</p>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-dashboard.js' %}"></script>
 {% endblock %}
