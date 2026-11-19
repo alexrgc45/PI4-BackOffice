@@ -21,7 +21,14 @@ form.addEventListener("submit", async (event) => {
                 password: passwordInput.value,
             }),
         });
-        const tokens = await response.json();
+        let tokens;
+        try {
+            tokens = await response.json();
+        } catch {
+            throw new Error(
+                `O servidor devolveu uma resposta inválida (${response.status}). Verifique a ligação à base de dados.`
+            );
+        }
         if (!response.ok) {
             throw new Error(tokens.detail || "E-mail ou palavra-passe inválidos.");
         }

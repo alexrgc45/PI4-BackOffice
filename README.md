@@ -31,6 +31,15 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+Para o Flutter Web local, permite a origem do servidor Flutter no `.env`:
+
+```env
+CORS_ALLOWED_ORIGINS=http://127.0.0.1:7357,http://localhost:7357
+```
+
+O Flutter usa `http://127.0.0.1:8000/api/v1/` por omissão. Se o servidor Flutter
+usar outra origem, atualiza `CORS_ALLOWED_ORIGINS` com essa origem exata.
+
 Mantém `DATABASE_URL` vazio nestes passos para preparar a base SQLite local. Depois, abre <http://127.0.0.1:8000/> para iniciar sessão, <http://127.0.0.1:8000/dashboard/> para abrir o painel, <http://127.0.0.1:8000/trabalhos/> para consultar trabalhos, <http://127.0.0.1:8000/rececao-trabalhos/> para consultar a receção, <http://127.0.0.1:8000/historico/> para consultar o histórico, <http://127.0.0.1:8000/clientes/> para consultar clientes, <http://127.0.0.1:8000/colaboradores/> para consultar a equipa, <http://127.0.0.1:8000/aceitar-utilizadores/> para aprovar pedidos de conta, <http://127.0.0.1:8000/notificacoes/> para consultar notificações, <http://127.0.0.1:8000/permissoes/> para gerir os acessos delegados, <http://127.0.0.1:8000/configuracao-etapas/> para configurar as etapas dos trabalhos ou <http://127.0.0.1:8000/perfil/> para gerir o perfil do administrador. A administração Django está em <http://127.0.0.1:8000/admin/>.
 
 ## Ligar ao Neon

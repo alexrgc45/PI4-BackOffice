@@ -122,6 +122,33 @@ class ApiAuthenticationTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
+    def test_cors_preflight_allows_flutter_web_origin(self):
+        response = self.client.options(
+            "/api/v1/auth/token/",
+            HTTP_ORIGIN="http://127.0.0.1:7357",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS="content-type",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["access-control-allow-origin"],
+            "http://127.0.0.1:7357",
+        )
+
+        authenticated_response = self.client.options(
+            "/api/v1/auth/me/",
+            HTTP_ORIGIN="http://127.0.0.1:7357",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="GET",
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS="authorization",
+        )
+
+        self.assertEqual(authenticated_response.status_code, 200)
+        self.assertIn(
+            "authorization",
+            authenticated_response["access-control-allow-headers"].lower(),
+        )
+
     def test_profile_requires_authentication(self):
         response = self.client.get("/api/v1/auth/me/")
 
