@@ -1,0 +1,69 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Clientes | Laboratório{% endblock %}
+{% block breadcrumb_label %}Clientes{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">GESTÃO DE CLIENTES</p>
+            <h1 id="page-title">Clientes</h1>
+            <p class="page-subtitle">Consulte clientes e respetivas informações de contacto.</p>
+        </div>
+        <button class="btn btn-gold" id="refresh-clients" type="button">Atualizar lista</button>
+    </div>
+
+    <section class="panel work-list-panel" aria-labelledby="client-list-heading">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">REGISTOS DO LABORATÓRIO</p>
+                <h2 id="client-list-heading">Todos os clientes</h2>
+            </div>
+            <span class="panel-count" id="client-count">— clientes</span>
+        </div>
+
+        <div class="work-toolbar">
+            <div class="work-filter-group">
+                <label for="client-search">Pesquisar</label>
+                <input class="form-control" id="client-search" type="search"
+                       placeholder="Nome, NIF, e-mail ou telefone">
+            </div>
+            <div class="work-filter-group">
+                <label for="client-status">Estado</label>
+                <select class="form-select" id="client-status">
+                    <option value="">Todos os clientes</option>
+                    <option value="active">Ativos</option>
+                    <option value="inactive">Inativos</option>
+                </select>
+            </div>
+        </div>
+
+        <p class="dashboard-status work-list-status" id="client-list-status"
+           role="status" aria-live="polite">A carregar clientes…</p>
+
+        <div class="table-responsive">
+            <table class="table work-table admin-work-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Cliente</th>
+                        <th scope="col">NIF</th>
+                        <th scope="col">E-mail</th>
+                        <th scope="col">Telefone</th>
+                        <th scope="col">Conta</th>
+                        <th scope="col">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="client-rows">
+                    <tr><td class="table-placeholder" colspan="6">A carregar clientes…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-client-list.js' %}"></script>
+{% endblock %}

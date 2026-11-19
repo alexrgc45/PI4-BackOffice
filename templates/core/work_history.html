@@ -1,0 +1,66 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Histórico | Laboratório{% endblock %}
+{% block breadcrumb_label %}Histórico{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">CONSULTA DE TRABALHOS CONCLUÍDOS</p>
+            <h1 id="page-title">Histórico</h1>
+            <p class="page-subtitle">Consulte os trabalhos concluídos e entregues pelo laboratório.</p>
+        </div>
+        <button class="btn btn-gold" id="refresh-history" type="button">Atualizar lista</button>
+    </div>
+
+    <section class="panel work-list-panel" aria-labelledby="history-heading">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">REGISTOS FINALIZADOS</p>
+                <h2 id="history-heading">Trabalhos concluídos</h2>
+            </div>
+            <span class="panel-count" id="history-count">— trabalhos</span>
+        </div>
+
+        <div class="work-toolbar">
+            <div class="work-filter-group">
+                <label for="history-search">Pesquisar</label>
+                <input class="form-control" id="history-search" type="search"
+                       placeholder="Paciente, tipo ou número do trabalho">
+            </div>
+            <div class="work-filter-group">
+                <label for="history-state">Estado</label>
+                <select class="form-select" id="history-state">
+                    <option value="">Todos os estados</option>
+                </select>
+            </div>
+        </div>
+
+        <p class="dashboard-status work-list-status" id="history-status"
+           role="status" aria-live="polite">A carregar histórico…</p>
+
+        <div class="table-responsive">
+            <table class="table work-table admin-work-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Trabalho</th>
+                        <th scope="col">Paciente</th>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Data de conclusão</th>
+                    </tr>
+                </thead>
+                <tbody id="history-rows">
+                    <tr><td class="table-placeholder" colspan="5">A carregar histórico…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-work-history.js' %}"></script>
+{% endblock %}

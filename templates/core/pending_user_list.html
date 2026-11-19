@@ -1,0 +1,63 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Aceitar utilizadores | Laboratório{% endblock %}
+{% block breadcrumb_label %}Aceitar utilizadores{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">CONTAS POR APROVAR</p>
+            <h1 id="page-title">Aceitar utilizadores</h1>
+            <p class="page-subtitle">Aprove ou rejeite pedidos de clientes e colaboradores.</p>
+        </div>
+        <button class="btn btn-gold" id="refresh-pending-users" type="button">Atualizar lista</button>
+    </div>
+
+    <section class="panel work-list-panel" aria-labelledby="pending-users-heading">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">APROVAÇÃO DE CONTAS</p>
+                <h2 id="pending-users-heading">Pedidos pendentes</h2>
+            </div>
+            <span class="panel-count" id="pending-user-count">— pedidos</span>
+        </div>
+
+        <div class="work-toolbar reception-toolbar">
+            <div class="work-filter-group">
+                <label for="pending-user-search">Pesquisar</label>
+                <input class="form-control" id="pending-user-search" type="search"
+                       placeholder="Nome, e-mail ou perfil">
+            </div>
+        </div>
+
+        <p class="dashboard-status work-list-status" id="pending-user-status"
+           role="status" aria-live="polite">A carregar pedidos…</p>
+
+        <div class="table-responsive">
+            <table class="table work-table admin-work-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Nome</th>
+                        <th scope="col">E-mail</th>
+                        <th scope="col">Perfil</th>
+                        <th scope="col">Data do pedido</th>
+                        <th scope="col">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="pending-user-rows">
+                    <tr><td class="table-placeholder" colspan="5">A carregar pedidos…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="panel-footer">
+            <span>A aprovação ativa a conta e o respetivo perfil. A rejeição elimina o pedido.</span>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-pending-users.js' %}"></script>
+{% endblock %}

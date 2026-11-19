@@ -1,8 +1,8 @@
 const completedStates = new Set(["Concluído", "Entregue"]);
 
-export function formatDate(value) {
+export function formatDate(value, emptyLabel = "Sem prazo") {
     if (!value) {
-        return "Sem prazo";
+        return emptyLabel;
     }
 
     const date = new Date(`${value}T12:00:00`);

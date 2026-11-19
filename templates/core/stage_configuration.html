@@ -1,0 +1,69 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Configuração de etapas | Laboratório{% endblock %}
+{% block breadcrumb_label %}Configuração de etapas{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">FLUXO DE PRODUÇÃO</p>
+            <h1 id="page-title">Configuração de etapas</h1>
+            <p class="page-subtitle">Defina a sequência de etapas para cada tipo de trabalho.</p>
+        </div>
+        <button class="btn btn-gold" id="refresh-stages" type="button">Atualizar lista</button>
+    </div>
+
+    <section class="panel stage-configuration-panel" aria-labelledby="stage-list-heading">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">MODELOS DE PRODUÇÃO</p>
+                <h2 id="stage-list-heading">Etapas por tipo de trabalho</h2>
+            </div>
+            <span class="panel-count" id="stage-count">— etapas</span>
+        </div>
+
+        <form class="stage-create-form" id="stage-create-form">
+            <div class="work-filter-group">
+                <label for="work-type-select">Tipo de trabalho</label>
+                <select class="form-select" id="work-type-select" required>
+                    <option value="">A carregar tipos de trabalho…</option>
+                </select>
+            </div>
+            <div class="work-filter-group">
+                <label for="new-stage-name">Nova etapa</label>
+                <input class="form-control" id="new-stage-name" type="text"
+                       maxlength="150" required placeholder="Ex.: Modelação">
+            </div>
+            <button class="btn btn-gold" id="add-stage-button" type="submit">Adicionar etapa</button>
+        </form>
+
+        <p class="dashboard-status work-list-status" id="stage-status"
+           role="status" aria-live="polite">A carregar etapas…</p>
+
+        <div class="table-responsive">
+            <table class="table work-table admin-work-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Ordem</th>
+                        <th scope="col">Nome da etapa</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="stage-rows">
+                    <tr><td class="table-placeholder" colspan="4">A carregar etapas…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="panel-footer stage-configuration-note">
+            <span>As alterações são aplicadas aos trabalhos em curso; trabalhos concluídos ou entregues não são alterados. Uma nova etapa é adicionada aos trabalhos em curso do tipo selecionado.</span>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-stage-configuration.js' %}"></script>
+{% endblock %}

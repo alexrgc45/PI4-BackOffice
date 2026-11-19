@@ -1,0 +1,74 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Permissões | Laboratório{% endblock %}
+{% block breadcrumb_label %}Permissões{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">CONTROLO DE ACESSOS</p>
+            <h1 id="page-title">Permissões</h1>
+            <p class="page-subtitle">Atribua aos colaboradores acesso delegado às áreas do backoffice.</p>
+        </div>
+        <button class="btn btn-gold" id="refresh-permissions" type="button">Atualizar lista</button>
+    </div>
+
+    <section class="panel work-list-panel" aria-labelledby="permission-heading">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">PERMISSÕES DISPONÍVEIS</p>
+                <h2 id="permission-heading">Receção de trabalhos</h2>
+            </div>
+            <span class="panel-count" id="permission-count">— colaboradores</span>
+        </div>
+        <div class="panel-footer permission-description">
+            <span>Permite consultar os pedidos que aguardam análise na fila de receção. Código: <code>rececao_trabalhos</code>.</span>
+        </div>
+
+        <div class="work-toolbar">
+            <div class="work-filter-group">
+                <label for="permission-search">Pesquisar colaborador</label>
+                <input class="form-control" id="permission-search" type="search"
+                       placeholder="Nome ou e-mail">
+            </div>
+            <div class="work-filter-group">
+                <label for="permission-filter">Acesso à receção</label>
+                <select class="form-select" id="permission-filter">
+                    <option value="">Todos os colaboradores</option>
+                    <option value="granted">Com acesso</option>
+                    <option value="not-granted">Sem acesso</option>
+                </select>
+            </div>
+        </div>
+
+        <p class="dashboard-status work-list-status" id="permission-status"
+           role="status" aria-live="polite">A carregar permissões…</p>
+
+        <div class="table-responsive">
+            <table class="table work-table admin-work-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Colaborador</th>
+                        <th scope="col">E-mail</th>
+                        <th scope="col">Conta</th>
+                        <th scope="col">Acesso à receção</th>
+                        <th scope="col">Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="permission-rows">
+                    <tr><td class="table-placeholder" colspan="5">A carregar permissões…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="panel-footer">
+            <span>Contas inativas não podem receber novas permissões.</span>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-permissions.js' %}"></script>
+{% endblock %}

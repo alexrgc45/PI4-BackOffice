@@ -1,6 +1,6 @@
 # Backoffice do Laboratório
 
-Projeto Django para o backoffice de um laboratório de próteses dentárias. A interface desktop usa templates Bootstrap e JavaScript `fetch` para consumir a API REST. A área de administração inclui autenticação, um painel e uma página para consultar e filtrar trabalhos; em desenvolvimento, o projeto usa SQLite por omissão e pode ligar-se ao PostgreSQL do Neon através de `DATABASE_URL`.
+Projeto Django para o backoffice de um laboratório de próteses dentárias. A interface desktop usa templates Bootstrap e JavaScript `fetch` para consumir a API REST. A área de administração inclui autenticação, um painel e páginas de trabalhos, receção, histórico, clientes e colaboradores; em desenvolvimento, o projeto usa SQLite por omissão e pode ligar-se ao PostgreSQL do Neon através de `DATABASE_URL`.
 
 ## Requisitos
 
@@ -31,7 +31,7 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Mantém `DATABASE_URL` vazio nestes passos para preparar a base SQLite local. Depois, abre <http://127.0.0.1:8000/> para iniciar sessão, <http://127.0.0.1:8000/dashboard/> para abrir o painel ou <http://127.0.0.1:8000/trabalhos/> para consultar trabalhos. A administração Django está em <http://127.0.0.1:8000/admin/>.
+Mantém `DATABASE_URL` vazio nestes passos para preparar a base SQLite local. Depois, abre <http://127.0.0.1:8000/> para iniciar sessão, <http://127.0.0.1:8000/dashboard/> para abrir o painel, <http://127.0.0.1:8000/trabalhos/> para consultar trabalhos, <http://127.0.0.1:8000/rececao-trabalhos/> para consultar a receção, <http://127.0.0.1:8000/historico/> para consultar o histórico, <http://127.0.0.1:8000/clientes/> para consultar clientes, <http://127.0.0.1:8000/colaboradores/> para consultar a equipa, <http://127.0.0.1:8000/aceitar-utilizadores/> para aprovar pedidos de conta, <http://127.0.0.1:8000/notificacoes/> para consultar notificações, <http://127.0.0.1:8000/permissoes/> para gerir os acessos delegados, <http://127.0.0.1:8000/configuracao-etapas/> para configurar as etapas dos trabalhos ou <http://127.0.0.1:8000/perfil/> para gerir o perfil do administrador. A administração Django está em <http://127.0.0.1:8000/admin/>.
 
 ## Ligar ao Neon
 
@@ -52,12 +52,22 @@ A API REST está versionada em `/api/v1/` e usa JWT com a tabela `utilizador` ex
 - `POST /api/v1/auth/token/` recebe `email` e `password` e devolve tokens `access` e `refresh`.
 - `POST /api/v1/auth/token/refresh/` recebe um `refresh` e devolve um novo `access`.
 - `GET /api/v1/auth/me/` devolve a conta autenticada e o perfil detetado.
+- `GET` e `PATCH /api/v1/admin/perfil/` consultam ou atualizam o nome e o e-mail do administrador autenticado; `POST /api/v1/admin/perfil/alterar-palavra-passe/` altera a palavra-passe após validar a atual e confirmar a nova.
+- `GET /api/v1/clientes/` lista clientes apenas para administradores, sem expor moradas nem permitir escrita.
+- `GET /api/v1/colaboradores/` lista colaboradores e permissões delegadas apenas para administradores.
+- `GET /api/v1/utilizadores/pendentes/` lista contas inativas com um perfil Cliente ou Colaborador também inativo; `POST /api/v1/utilizadores/{id}/aprovar/` ativa a conta e o respetivo perfil; `DELETE /api/v1/utilizadores/{id}/rejeitar/` elimina um pedido pendente.
+- `GET /api/v1/notificacoes/` lista notificações da conta autenticada; `POST /api/v1/notificacoes/{id}/ler/` marca uma notificação própria como lida.
+- `GET /api/v1/tipos-trabalho/` lista os tipos de trabalho; `GET` e `POST /api/v1/tipos-trabalho/{id}/etapas/` consultam ou acrescentam etapas ao modelo do tipo; `PATCH /api/v1/etapas-template/{id}/` altera o nome, a ordem ou o estado ativo de uma etapa. Estas operações só estão disponíveis para administradores.
 - `GET /api/v1/trabalhos/` e `GET /api/v1/trabalhos/{id}/` expõem trabalhos em modo de leitura, com resultados limitados pelo perfil.
 - `GET /api/v1/encomendas/rececao/` lista pedidos em avaliação para administradores e colaboradores com a permissão de receção.
 - `GET` e `POST /api/v1/permissoes/colaboradores/{id}/` consultam ou concedem permissões; `DELETE /api/v1/permissoes/colaboradores/{id}/{codigo}/` revoga uma permissão. Apenas administradores podem gerir delegações.
 
 Envia o token de acesso no cabeçalho `Authorization: Bearer <access>`. O campo `password_hash` deve conter hashes compatíveis com os hashers do Django; nunca guardes palavras-passe em texto simples. Os restantes recursos da API devem ser acrescentados com permissões por perfil antes de expor operações de leitura ou escrita.
 
+Para entrar na fila de aprovação, o registo deve criar a linha de `utilizador` inativa e a linha correspondente de `cliente` ou `colaborador`, também inativa. A aprovação ativa ambas. A rejeição remove o pedido e o perfil; se a conta já tiver dados operacionais associados, a eliminação é recusada para preservar o histórico.
+
 Administradores veem todos os trabalhos; colaboradores veem trabalhos operacionais, excluindo os estados `Em Avaliação`, `Concluído` e `Entregue`; clientes veem apenas trabalhos associados ao seu próprio perfil, incluindo o histórico. As operações de escrita nos trabalhos e a delegação de outras páginas ainda não estão implementadas.
 
-A permissão atualmente disponível é `rececao_trabalhos`. O identificador `{id}` da rota de permissões é o `utilizador_id` do perfil de colaborador.
+A permissão atualmente disponível é `rececao_trabalhos`, gerida na página Permissões. O identificador `{id}` da rota de permissões é o `utilizador_id` do perfil de colaborador.
+
+Na configuração de etapas, uma nova etapa também é inserida nos trabalhos em curso do tipo selecionado. Alterações de nome, ordem ou estado ativo são propagadas às etapas de trabalhos em curso; os trabalhos concluídos ou entregues e o respetivo histórico não são alterados. As etapas são desativadas em vez de eliminadas.

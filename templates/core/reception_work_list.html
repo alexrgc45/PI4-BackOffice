@@ -1,0 +1,60 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Receção de trabalhos | Laboratório{% endblock %}
+{% block breadcrumb_label %}Receção de trabalhos{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">ENTRADA DE PEDIDOS</p>
+            <h1 id="page-title">Receção de trabalhos</h1>
+            <p class="page-subtitle">Consulte os pedidos que aguardam análise pelo laboratório.</p>
+        </div>
+        <button class="btn btn-gold" id="refresh-reception" type="button">Atualizar lista</button>
+    </div>
+
+    <section class="panel work-list-panel" aria-labelledby="reception-list-heading">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">PEDIDOS RECEBIDOS</p>
+                <h2 id="reception-list-heading">Pedidos por analisar</h2>
+            </div>
+            <span class="panel-count" id="reception-count">— pedidos</span>
+        </div>
+
+        <div class="work-toolbar reception-toolbar">
+            <div class="work-filter-group">
+                <label for="reception-search">Pesquisar</label>
+                <input class="form-control" id="reception-search" type="search"
+                       placeholder="Paciente, clínica ou número do pedido">
+            </div>
+        </div>
+
+        <p class="dashboard-status work-list-status" id="reception-status"
+           role="status" aria-live="polite">A carregar pedidos…</p>
+
+        <div class="table-responsive">
+            <table class="table work-table admin-work-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Pedido</th>
+                        <th scope="col">Paciente</th>
+                        <th scope="col">Clínica</th>
+                        <th scope="col">Data de receção</th>
+                        <th scope="col">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="reception-rows">
+                    <tr><td class="table-placeholder" colspan="5">A carregar pedidos…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-reception.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Perfil | Laboratório{% endblock %}
+{% block breadcrumb_label %}Perfil{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">CONTA DO ADMINISTRADOR</p>
+            <h1 id="page-title">Perfil</h1>
+            <p class="page-subtitle">Atualize os seus dados pessoais e as credenciais de acesso.</p>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <section class="panel" aria-labelledby="profile-details-heading">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">DADOS PESSOAIS</p>
+                    <h2 id="profile-details-heading">Informações da conta</h2>
+                </div>
+            </div>
+            <form class="profile-form" id="profile-form">
+                <div class="profile-field">
+                    <label for="profile-name">Nome</label>
+                    <input class="form-control" id="profile-name" name="nome"
+                           type="text" maxlength="255" autocomplete="name" required>
+                </div>
+                <div class="profile-field">
+                    <label for="profile-email">E-mail</label>
+                    <input class="form-control" id="profile-email" name="email"
+                           type="email" maxlength="254" autocomplete="email" required>
+                </div>
+                <p class="dashboard-status" id="profile-status" role="status"
+                   aria-live="polite">A carregar perfil…</p>
+                <button class="btn btn-gold" id="save-profile-button" type="submit">
+                    Guardar alterações
+                </button>
+            </form>
+        </section>
+
+        <section class="panel" aria-labelledby="password-heading">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">SEGURANÇA</p>
+                    <h2 id="password-heading">Alterar palavra-passe</h2>
+                </div>
+            </div>
+            <form class="profile-form" id="password-form">
+                <div class="profile-field">
+                    <label for="current-password">Palavra-passe atual</label>
+                    <input class="form-control" id="current-password" name="current_password"
+                           type="password" maxlength="128" autocomplete="current-password" required>
+                </div>
+                <div class="profile-field">
+                    <label for="new-password">Nova palavra-passe</label>
+                    <input class="form-control" id="new-password" name="new_password"
+                           type="password" minlength="8" maxlength="128"
+                           autocomplete="new-password" required>
+                </div>
+                <div class="profile-field">
+                    <label for="confirm-password">Confirmar nova palavra-passe</label>
+                    <input class="form-control" id="confirm-password" name="confirm_password"
+                           type="password" minlength="8" maxlength="128"
+                           autocomplete="new-password" required>
+                </div>
+                <p class="profile-hint">A nova palavra-passe deve ter pelo menos 8 caracteres.</p>
+                <p class="dashboard-status" id="password-status" role="status"
+                   aria-live="polite"></p>
+                <button class="btn btn-gold" id="change-password-button" type="submit">
+                    Alterar palavra-passe
+                </button>
+            </form>
+        </section>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-profile.js' %}"></script>
+{% endblock %}

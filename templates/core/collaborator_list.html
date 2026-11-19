@@ -1,0 +1,70 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Colaboradores | Laboratório{% endblock %}
+{% block breadcrumb_label %}Colaboradores{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">EQUIPA DO LABORATÓRIO</p>
+            <h1 id="page-title">Colaboradores</h1>
+            <p class="page-subtitle">Consulte a equipa e o estado das contas de colaborador.</p>
+        </div>
+        <button class="btn btn-gold" id="refresh-collaborators" type="button">Atualizar lista</button>
+    </div>
+
+    <section class="panel work-list-panel" aria-labelledby="collaborator-list-heading">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">EQUIPA</p>
+                <h2 id="collaborator-list-heading">Todos os colaboradores</h2>
+            </div>
+            <span class="panel-count" id="collaborator-count">— colaboradores</span>
+        </div>
+
+        <div class="work-toolbar">
+            <div class="work-filter-group">
+                <label for="collaborator-search">Pesquisar</label>
+                <input class="form-control" id="collaborator-search" type="search"
+                       placeholder="Nome, e-mail ou número">
+            </div>
+            <div class="work-filter-group">
+                <label for="collaborator-status-filter">Estado</label>
+                <select class="form-select" id="collaborator-status-filter">
+                    <option value="">Todos os colaboradores</option>
+                    <option value="active">Ativos</option>
+                    <option value="inactive">Inativos</option>
+                </select>
+            </div>
+        </div>
+
+        <p class="dashboard-status work-list-status" id="collaborator-status"
+           role="status" aria-live="polite">A carregar colaboradores…</p>
+
+        <div class="table-responsive">
+            <table class="table work-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Colaborador</th>
+                        <th scope="col">E-mail</th>
+                        <th scope="col">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="collaborator-rows">
+                    <tr><td class="table-placeholder" colspan="3">A carregar colaboradores…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="panel-footer">
+            <span>A gestão dos acessos delegados é feita na página Permissões.</span>
+            <a class="text-link" href="{% url 'core:permission_list' %}">Ver permissões <span aria-hidden="true">→</span></a>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-collaborator-list.js' %}"></script>
+{% endblock %}

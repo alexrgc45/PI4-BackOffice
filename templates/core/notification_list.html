@@ -1,0 +1,54 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Notificações | Laboratório{% endblock %}
+{% block breadcrumb_label %}Notificações{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">ATUALIZAÇÕES DO LABORATÓRIO</p>
+            <h1 id="page-title">Notificações</h1>
+            <p class="page-subtitle">Acompanhe as atualizações associadas à sua conta.</p>
+        </div>
+        <button class="btn btn-gold" id="refresh-notifications" type="button">Atualizar lista</button>
+    </div>
+
+    <section class="panel notification-panel" aria-labelledby="notification-list-heading">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">CAIXA DE ENTRADA</p>
+                <h2 id="notification-list-heading">As suas notificações</h2>
+            </div>
+            <span class="panel-count" id="notification-count">— por ler</span>
+        </div>
+
+        <div class="work-toolbar">
+            <div class="work-filter-group">
+                <label for="notification-search">Pesquisar</label>
+                <input class="form-control" id="notification-search" type="search"
+                       placeholder="Título, conteúdo ou tipo">
+            </div>
+            <div class="work-filter-group">
+                <label for="notification-filter">Estado</label>
+                <select class="form-select" id="notification-filter">
+                    <option value="all">Todas</option>
+                    <option value="unread">Não lidas</option>
+                    <option value="read">Lidas</option>
+                </select>
+            </div>
+        </div>
+
+        <p class="dashboard-status work-list-status" id="notification-status"
+           role="status" aria-live="polite">A carregar notificações…</p>
+        <div class="notification-list" id="notification-list" aria-live="polite">
+            <p class="table-placeholder">A carregar notificações…</p>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-notifications.js' %}"></script>
+{% endblock %}

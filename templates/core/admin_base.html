@@ -25,20 +25,68 @@
                     <span class="nav-mark" aria-hidden="true">02</span>
                     <span>Trabalhos</span>
                 </a>
-                <a class="sidebar-link" href="{% url 'core:dashboard' %}#rececao">
+                <a class="sidebar-link{% if active_page == 'reception' %} active{% endif %}"
+                   href="{% url 'core:reception_work_list' %}"
+                   {% if active_page == 'reception' %}aria-current="page"{% endif %}>
                     <span class="nav-mark" aria-hidden="true">03</span>
-                    <span>Receção</span>
+                    <span>Receção de trabalhos</span>
+                </a>
+                <a class="sidebar-link{% if active_page == 'history' %} active{% endif %}"
+                   href="{% url 'core:history' %}"
+                   {% if active_page == 'history' %}aria-current="page"{% endif %}>
+                    <span class="nav-mark" aria-hidden="true">04</span>
+                    <span>Histórico</span>
+                </a>
+                <a class="sidebar-link{% if active_page == 'clients' %} active{% endif %}"
+                   href="{% url 'core:client_list' %}"
+                   {% if active_page == 'clients' %}aria-current="page"{% endif %}>
+                    <span class="nav-mark" aria-hidden="true">05</span>
+                    <span>Clientes</span>
+                </a>
+                <a class="sidebar-link{% if active_page == 'collaborators' %} active{% endif %}"
+                   href="{% url 'core:collaborator_list' %}"
+                   {% if active_page == 'collaborators' %}aria-current="page"{% endif %}>
+                    <span class="nav-mark" aria-hidden="true">06</span>
+                    <span>Colaboradores</span>
+                </a>
+                <a class="sidebar-link{% if active_page == 'pending_users' %} active{% endif %}"
+                   href="{% url 'core:pending_user_list' %}"
+                   {% if active_page == 'pending_users' %}aria-current="page"{% endif %}>
+                    <span class="nav-mark" aria-hidden="true">07</span>
+                    <span>Aceitar utilizadores</span>
+                </a>
+                <a class="sidebar-link{% if active_page == 'notifications' %} active{% endif %}"
+                   href="{% url 'core:notification_list' %}"
+                   {% if active_page == 'notifications' %}aria-current="page"{% endif %}>
+                    <span class="nav-mark" aria-hidden="true">08</span>
+                    <span>Notificações</span>
+                </a>
+                <a class="sidebar-link{% if active_page == 'permissions' %} active{% endif %}"
+                   href="{% url 'core:permission_list' %}"
+                   {% if active_page == 'permissions' %}aria-current="page"{% endif %}>
+                    <span class="nav-mark" aria-hidden="true">09</span>
+                    <span>Permissões</span>
+                </a>
+                <a class="sidebar-link{% if active_page == 'stages' %} active{% endif %}"
+                   href="{% url 'core:stage_configuration' %}"
+                   {% if active_page == 'stages' %}aria-current="page"{% endif %}>
+                    <span class="nav-mark" aria-hidden="true">10</span>
+                    <span>Configuração de etapas</span>
                 </a>
             </nav>
 
             <div class="sidebar-bottom">
-                <div class="sidebar-user">
+                <a class="sidebar-user sidebar-profile-link{% if active_page == 'profile' %} active{% endif %}"
+                   href="{% url 'core:admin_profile' %}"
+                   aria-label="Abrir perfil do administrador"
+                   {% if active_page == 'profile' %}aria-current="page"{% endif %}>
                     <span class="user-avatar" aria-hidden="true">AD</span>
                     <span class="user-details">
-                        <strong>Administrador</strong>
+                        <strong id="sidebar-name">Administrador</strong>
                         <span id="sidebar-email">A carregar perfil…</span>
+                        <span class="profile-link-hint">Ver perfil</span>
                     </span>
-                </div>
+                </a>
                 <button class="sidebar-logout" id="logout-button" type="button">
                     <span aria-hidden="true">↗</span> Terminar sessão
                 </button>

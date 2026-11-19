@@ -89,7 +89,7 @@
             <div class="panel-heading">
                 <div>
                     <p class="eyebrow">ENTRADA DE PEDIDOS</p>
-                    <h2 id="reception-heading">Fila de receção</h2>
+                    <h2 id="reception-heading">Receção de trabalhos</h2>
                 </div>
                 <span class="reception-indicator" aria-hidden="true"></span>
             </div>
@@ -98,6 +98,7 @@
             </div>
             <div class="panel-footer">
                 <span id="reception-summary">Pedidos que aguardam análise.</span>
+                <a href="{% url 'core:reception_work_list' %}" class="text-link">Ver pedidos <span aria-hidden="true">→</span></a>
             </div>
         </section>
     </div>
