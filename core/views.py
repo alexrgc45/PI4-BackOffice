@@ -1,6 +1,10 @@
 from django.shortcuts import render
 
 
+def welcome_page(request):
+    return render(request, "core/welcome.html")
+
+
 def login_page(request):
     return render(request, "core/login.html")
 

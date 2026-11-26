@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Bem-vindo | Laboratório Catarina Domingos{% endblock %}
+{% block body_class %}welcome-page{% endblock %}
+
+{% block body %}
+<main class="welcome-layout">
+    <section class="welcome-copy">
+        <a class="brand-lockup welcome-brand" href="/" aria-label="Laboratório Catarina Domingos">
+            <span class="brand-monogram" aria-hidden="true">CD</span>
+            <span class="brand-name">CATARINA<br>DOMINGOS</span>
+        </a>
+
+        <div class="welcome-message">
+            <p class="eyebrow">GESTÃO DE LABORATÓRIO</p>
+            <h1>Bem-vindo ao <span>Laboratório Catarina Domingos.</span></h1>
+            <p class="welcome-intro">
+                Entre na área reservada para acompanhar pedidos, gerir a produção
+                e comunicar com o laboratório.
+            </p>
+
+            <div class="welcome-access">
+                <span class="access-indicator" aria-hidden="true"></span>
+                <div class="access-copy">
+                    <p class="eyebrow">ÁREA RESERVADA</p>
+                    <strong>Identifique-se para continuar</strong>
+                </div>
+                <a class="btn btn-gold welcome-cta" href="{% url 'core:login' %}">
+                    Iniciar sessão <span aria-hidden="true">→</span>
+                </a>
+            </div>
+            <p class="welcome-note">Acesso seguro e reservado a utilizadores autorizados.</p>
+        </div>
+
+        <footer class="welcome-footer">
+            <span>BACKOFFICE · PRÓTESES DENTÁRIAS</span>
+            <span>ADMINISTRADOR · COLABORADOR · CLIENTE</span>
+        </footer>
+    </section>
+
+    <section class="welcome-visual" aria-label="Precisão técnica. Confiança em cada detalhe.">
+        <div class="visual-orbit visual-orbit-one" aria-hidden="true"></div>
+        <div class="visual-orbit visual-orbit-two" aria-hidden="true"></div>
+        <div class="visual-light visual-light-one" aria-hidden="true"></div>
+        <div class="visual-light visual-light-two" aria-hidden="true"></div>
+        <div class="visual-caption">
+            <p class="eyebrow">LABORATÓRIO CATARINA DOMINGOS</p>
+            <h2>Precisão técnica.<br>Confiança em cada detalhe.</h2>
+        </div>
+        <span class="visual-index" aria-hidden="true">01 — 03</span>
+    </section>
+</main>
+{% endblock %}

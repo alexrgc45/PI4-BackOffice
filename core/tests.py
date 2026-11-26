@@ -30,11 +30,20 @@ from .models import (
 
 
 class DashboardTests(TestCase):
-    def test_login_page_loads(self):
+    def test_welcome_page_loads(self):
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Bem-vindo ao")
+        self.assertContains(response, 'href="/login/"')
+        self.assertContains(response, 'id="theme-toggle"')
+
+    def test_login_page_loads(self):
+        response = self.client.get("/login/")
+
+        self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Bem-vindo de volta")
+        self.assertContains(response, "/static/js/theme.js")
 
     def test_dashboard_loads(self):
         response = self.client.get("/dashboard/")
