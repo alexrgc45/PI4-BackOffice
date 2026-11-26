@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
+import '../route_names.dart';
+import '../services/auth_api.dart';
 import '../theme/app_colors.dart';
 
 class PortalClinicaPage extends StatefulWidget {
@@ -11,6 +13,16 @@ class PortalClinicaPage extends StatefulWidget {
 
 class _PortalClinicaPageState extends State<PortalClinicaPage> {
   int _currentIndex = 0;
+
+  void _abrirRotaCliente(String routeName) {
+    Navigator.of(context).pushNamed(routeName);
+  }
+
+  void _terminarSessao() {
+    AuthApi.currentSession = null;
+    Navigator.of(context)
+        .pushNamedAndRemoveUntil(AppRouteNames.loginPath, (route) => false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +66,10 @@ class _PortalClinicaPageState extends State<PortalClinicaPage> {
                   const Spacer(),
                   Flexible(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.portalRoleBackground,
                         borderRadius: BorderRadius.circular(20),
@@ -79,24 +94,21 @@ class _PortalClinicaPageState extends State<PortalClinicaPage> {
                   _IconActionButton(
                     icon: Icons.notifications_none,
                     showDot: true,
-                    onTap: () {
-                      // TODO: navegar para notificações
-                    },
+                    onTap: () =>
+                        _abrirRotaCliente(AppRouteNames.clientNotificacoesPath),
                   ),
                   const SizedBox(width: 8),
-                  _IconActionButton(
-                    icon: Icons.logout,
-                    onTap: () {
-                      // TODO: logout / voltar para login_screen.dart
-                    },
-                  ),
+                  _IconActionButton(icon: Icons.logout, onTap: _terminarSessao),
                 ],
               ),
               const SizedBox(height: 14),
 
               // Barra de sessão autorizada
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.portalSurfaceDark,
                   borderRadius: BorderRadius.circular(10),
@@ -239,9 +251,8 @@ class _PortalClinicaPageState extends State<PortalClinicaPage> {
                     ),
                     const SizedBox(width: 14),
                     InkWell(
-                      onTap: () {
-                        // TODO: navegar para criartrabalho.dart
-                      },
+                      onTap: () =>
+                          _abrirRotaCliente(AppRouteNames.clientNovoPedidoPath),
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         width: 104,
@@ -289,9 +300,8 @@ class _PortalClinicaPageState extends State<PortalClinicaPage> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {
-                      setState(() => _currentIndex = 2); // Vai para aba Pedidos
-                    },
+                    onPressed: () =>
+                        _abrirRotaCliente(AppRouteNames.clientPedidosPath),
                     child: const Text(
                       'Ver todos',
                       style: TextStyle(
@@ -335,7 +345,8 @@ class _PortalClinicaPageState extends State<PortalClinicaPage> {
               const _AtualizacaoItem(
                 icon: Icons.camera_alt_outlined,
                 titulo: 'Novas fotografias de prova',
-                descricao: 'O laboratório partilhou conteúdo no pedido #PT-2026-184.',
+                descricao:
+                    'O laboratório partilhou conteúdo no pedido #PT-2026-184.',
                 tempo: 'Há 12 min',
                 naoLida: true,
               ),
@@ -343,7 +354,8 @@ class _PortalClinicaPageState extends State<PortalClinicaPage> {
               const _AtualizacaoItem(
                 icon: Icons.chat_bubble_outline,
                 titulo: 'Nota do laboratório',
-                descricao: '“Solicitamos validação da tonalidade antes de avançar.”',
+                descricao:
+                    '“Solicitamos validação da tonalidade antes de avançar.”',
                 tempo: 'Ontem, 16:38',
                 naoLida: true,
               ),
@@ -356,11 +368,18 @@ class _PortalClinicaPageState extends State<PortalClinicaPage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          if (index == 1) {
-            // TODO: abrir criartrabalho.dart
-            return;
+          switch (index) {
+            case 0:
+              setState(() => _currentIndex = 0);
+            case 1:
+              _abrirRotaCliente(AppRouteNames.clientNovoPedidoPath);
+            case 2:
+              _abrirRotaCliente(AppRouteNames.clientPedidosPath);
+            case 3:
+              _abrirRotaCliente(AppRouteNames.clientNotificacoesPath);
+            default:
+              setState(() => _currentIndex = index);
           }
-          setState(() => _currentIndex = index);
         },
         type: BottomNavigationBarType.fixed,
         backgroundColor: AppColors.portalSurfaceDark,
@@ -542,10 +561,7 @@ class _PedidoAtivoCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          const Icon(
-            Icons.chevron_right,
-            color: AppColors.portalTextMuted,
-          ),
+          const Icon(Icons.chevron_right, color: AppColors.portalTextMuted),
         ],
       ),
     );
