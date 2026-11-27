@@ -16,7 +16,7 @@
     </section>
 
     <section class="metric-grid" aria-label="Resumo do laboratório">
-        <article class="metric-card metric-highlight">
+        <article class="metric-card metric-card-pending metric-highlight">
             <div class="metric-card-top">
                 <span class="metric-label">Por aceitar</span>
                 <span class="metric-index">01</span>
@@ -24,7 +24,7 @@
             <p class="metric-value" id="metric-pending">—</p>
             <p class="metric-caption">Pedidos na receção</p>
         </article>
-        <article class="metric-card">
+        <article class="metric-card metric-card-production">
             <div class="metric-card-top">
                 <span class="metric-label">Em produção</span>
                 <span class="metric-index">02</span>
@@ -32,7 +32,7 @@
             <p class="metric-value" id="metric-production">—</p>
             <p class="metric-caption">Trabalhos em curso</p>
         </article>
-        <article class="metric-card">
+        <article class="metric-card metric-card-standby">
             <div class="metric-card-top">
                 <span class="metric-label">Em standby</span>
                 <span class="metric-index">03</span>
@@ -40,7 +40,7 @@
             <p class="metric-value" id="metric-standby">—</p>
             <p class="metric-caption">A aguardar seguimento</p>
         </article>
-        <article class="metric-card">
+        <article class="metric-card metric-card-completed">
             <div class="metric-card-top">
                 <span class="metric-label">Concluídos</span>
                 <span class="metric-index">04</span>
@@ -60,6 +60,11 @@
                 <div>
                     <p class="eyebrow">PRAZOS DO LABORATÓRIO</p>
                     <h2 id="work-heading">Prazos prioritários</h2>
+                    <div class="priority-legend" aria-label="Legenda dos estados">
+                        <span class="status-pill dashboard-work-processing">Em processamento</span>
+                        <span class="status-pill dashboard-work-proof">Em prova</span>
+                        <span class="status-pill dashboard-work-waiting">Em espera</span>
+                    </div>
                 </div>
                 <span class="panel-count" id="work-count">— trabalhos</span>
             </div>

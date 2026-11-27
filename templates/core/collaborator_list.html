@@ -50,10 +50,11 @@
                         <th scope="col">Colaborador</th>
                         <th scope="col">E-mail</th>
                         <th scope="col">Estado</th>
+                        <th scope="col">Ação</th>
                     </tr>
                 </thead>
                 <tbody id="collaborator-rows">
-                    <tr><td class="table-placeholder" colspan="3">A carregar colaboradores…</td></tr>
+                    <tr><td class="table-placeholder" colspan="4">A carregar colaboradores…</td></tr>
                 </tbody>
             </table>
         </div>
@@ -66,5 +67,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="{% static 'js/admin-collaborator-list.js' %}"></script>
+<script type="module" src="{% static 'js/admin-collaborator-list.js' %}?v=2"></script>
 {% endblock %}

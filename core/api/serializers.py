@@ -1,18 +1,26 @@
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import check_password, make_password
+from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.models import (
     Cliente,
     Colaborador,
     Encomenda,
+    EtapaTrabalho,
+    Material,
+    MedicoResponsavel,
     Notificacao,
     PermissaoColaborador,
     TemplateEtapa,
     Trabalho,
+    TrabalhoDente,
+    TrabalhoMaterial,
     TipoTrabalho,
     Utilizador,
 )
@@ -42,6 +50,44 @@ class TokenObtainSerializer(serializers.Serializer):
                 "email": user.email,
             },
         }
+
+
+class TokenRefreshSerializer(serializers.Serializer):
+    refresh = serializers.CharField(write_only=True)
+    access = serializers.CharField(read_only=True)
+
+    def validate(self, attrs):
+        try:
+            refresh = RefreshToken(attrs["refresh"])
+        except TokenError as exc:
+            raise AuthenticationFailed(
+                "O token de sessão é inválido ou expirou."
+            ) from exc
+
+        issued_at = refresh.payload.get("iat")
+        max_age = api_settings.REFRESH_TOKEN_LIFETIME.total_seconds()
+        if not isinstance(issued_at, int) or (
+            timezone.now().timestamp() - issued_at >= max_age
+        ):
+            raise AuthenticationFailed("A sessão expirou.")
+
+        user_id = refresh.payload.get(api_settings.USER_ID_CLAIM)
+        if user_id is None:
+            raise AuthenticationFailed(
+                "O token de sessão não identifica um utilizador."
+            )
+
+        try:
+            user = Utilizador.objects.get(
+                **{api_settings.USER_ID_FIELD: user_id},
+            )
+        except Utilizador.DoesNotExist as exc:
+            raise AuthenticationFailed("Utilizador inexistente.") from exc
+
+        if not user.ativo:
+            raise AuthenticationFailed("O utilizador está inativo.")
+
+        return {"access": str(refresh.access_token)}
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):
@@ -136,11 +182,18 @@ class AdminPasswordChangeSerializer(serializers.Serializer):
 
 
 class ClienteSerializer(serializers.ModelSerializer):
+    medicos_responsaveis = serializers.SlugRelatedField(
+        many=True,
+        read_only=True,
+        slug_field="nome",
+    )
+
     class Meta:
         model = Cliente
         fields = (
             "id",
             "nome",
+            "medicos_responsaveis",
             "nif",
             "email_contacto",
             "telefone",
@@ -148,6 +201,195 @@ class ClienteSerializer(serializers.ModelSerializer):
             "ativo",
         )
         read_only_fields = fields
+
+
+class ClienteDetailSerializer(ClienteSerializer):
+    email_contacto = serializers.SerializerMethodField()
+
+    class Meta(ClienteSerializer.Meta):
+        fields = ClienteSerializer.Meta.fields + ("morada",)
+        read_only_fields = fields
+
+    def get_email_contacto(self, client):
+        if client.email_contacto:
+            return client.email_contacto
+        if client.utilizador_id:
+            return client.utilizador.email
+        return None
+
+
+class MedicoResponsavelNamesField(serializers.ListField):
+    def to_representation(self, value):
+        if hasattr(value, "all"):
+            value = value.all().values_list("nome", flat=True)
+        return super().to_representation(value)
+
+
+class AdminClienteCreateSerializer(serializers.ModelSerializer):
+    nif = serializers.RegexField(
+        regex=r"^[0-9]{9}$",
+        min_length=9,
+        max_length=9,
+    )
+    medicos_responsaveis = MedicoResponsavelNamesField(
+        child=serializers.CharField(max_length=255),
+        min_length=1,
+    )
+    email_contacto = serializers.EmailField(
+        required=False,
+        max_length=255,
+    )
+    password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+        min_length=8,
+        max_length=128,
+        required=False,
+        allow_blank=True,
+    )
+    telefone = serializers.RegexField(
+        regex=r"^[0-9]{9}$",
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        min_length=9,
+        max_length=9,
+    )
+    morada = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = Cliente
+        fields = (
+            "id",
+            "nome",
+            "medicos_responsaveis",
+            "nif",
+            "email_contacto",
+            "password",
+            "telefone",
+            "morada",
+        )
+        read_only_fields = ("id",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance is None:
+            self.fields["email_contacto"].required = True
+            self.fields["password"].required = True
+            self.fields["password"].allow_blank = False
+
+    def validate_nif(self, value):
+        clients = Cliente.objects.filter(nif=value)
+        if self.instance is not None:
+            clients = clients.exclude(pk=self.instance.pk)
+        if clients.exists():
+            raise serializers.ValidationError(
+                "Já existe um cliente com este NIF."
+            )
+        return value
+
+    def validate_email_contacto(self, value):
+        value = value.strip().lower()
+        users = Utilizador.objects.filter(email__iexact=value)
+        if self.instance is not None and self.instance.utilizador_id:
+            users = users.exclude(pk=self.instance.utilizador_id)
+        if users.exists():
+            raise serializers.ValidationError(
+                "Este e-mail já está associado a uma conta."
+            )
+        return value
+
+    def validate(self, attrs):
+        if self.instance is not None and not self.instance.utilizador_id:
+            email = attrs.get("email_contacto", self.instance.email_contacto)
+            password = attrs.get("password")
+            errors = {}
+            if not email:
+                errors["email_contacto"] = (
+                    "Indique um e-mail para criar a conta deste cliente."
+                )
+            if not password:
+                errors["password"] = (
+                    "Defina uma password para criar a conta deste cliente."
+                )
+            if errors:
+                raise serializers.ValidationError(errors)
+        return attrs
+
+    def validate_medicos_responsaveis(self, names):
+        normalized_names = [name.casefold() for name in names]
+        if len(normalized_names) != len(set(normalized_names)):
+            raise serializers.ValidationError(
+                "Cada médico responsável só pode ser adicionado uma vez."
+            )
+        return names
+
+    @transaction.atomic
+    def create(self, validated_data):
+        doctor_names = validated_data.pop("medicos_responsaveis")
+        password = validated_data.pop("password")
+        now = timezone.now()
+        user = Utilizador.objects.create(
+            email=validated_data["email_contacto"],
+            password_hash=make_password(password),
+            ativo=validated_data.get("ativo", True),
+            criado_em=now,
+            atualizado_em=now,
+        )
+        validated_data["utilizador"] = user
+        validated_data["tem_conta"] = True
+        client = super().create(validated_data)
+        MedicoResponsavel.objects.bulk_create(
+            [
+                MedicoResponsavel(cliente=client, nome=name)
+                for name in doctor_names
+            ]
+        )
+        return client
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        doctor_names = validated_data.pop("medicos_responsaveis", None)
+        password = validated_data.pop("password", "")
+        email_was_submitted = "email_contacto" in validated_data
+        client = super().update(instance, validated_data)
+        if not client.utilizador_id:
+            now = timezone.now()
+            client.utilizador = Utilizador.objects.create(
+                email=client.email_contacto,
+                password_hash=make_password(password),
+                ativo=client.ativo,
+                criado_em=now,
+                atualizado_em=now,
+            )
+            client.tem_conta = True
+            client.save(update_fields=("utilizador", "tem_conta"))
+        else:
+            user = client.utilizador
+            user_fields = []
+            if email_was_submitted and user.email != client.email_contacto:
+                user.email = client.email_contacto
+                user_fields.append("email")
+            if password:
+                user.password_hash = make_password(password)
+                user_fields.append("password_hash")
+            if user_fields:
+                user.atualizado_em = timezone.now()
+                user_fields.append("atualizado_em")
+                user.save(update_fields=user_fields)
+        if doctor_names is not None:
+            instance.medicos_responsaveis.all().delete()
+            MedicoResponsavel.objects.bulk_create(
+                [
+                    MedicoResponsavel(cliente=instance, nome=name)
+                    for name in doctor_names
+                ]
+            )
+        return client
 
 
 class ColaboradorSerializer(serializers.ModelSerializer):
@@ -162,6 +404,55 @@ class ColaboradorSerializer(serializers.ModelSerializer):
 
     def get_permissoes(self, collaborator):
         return [permission.codigo for permission in collaborator.permissoes.all()]
+
+
+class AdminColaboradorUpdateSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source="utilizador.email", max_length=255)
+    password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+        min_length=8,
+        max_length=128,
+        required=False,
+        allow_blank=True,
+    )
+
+    class Meta:
+        model = Colaborador
+        fields = ("nome", "email", "password")
+
+    def validate_email(self, value):
+        value = value.strip().lower()
+        users = Utilizador.objects.filter(email__iexact=value).exclude(
+            pk=self.instance.utilizador_id
+        )
+        if users.exists():
+            raise serializers.ValidationError(
+                "Este e-mail já está associado a outra conta."
+            )
+        return value
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop("utilizador", {})
+        email = user_data.get("email")
+        password = validated_data.pop("password", "")
+        collaborator = super().update(instance, validated_data)
+        user = collaborator.utilizador
+        user_fields = []
+
+        if email is not None and user.email != email:
+            user.email = email
+            user_fields.append("email")
+        if password:
+            user.password_hash = make_password(password)
+            user_fields.append("password_hash")
+        if user_fields:
+            user.atualizado_em = timezone.now()
+            user_fields.append("atualizado_em")
+            user.save(update_fields=user_fields)
+
+        return collaborator
 
 
 class UtilizadorPendenteSerializer(serializers.ModelSerializer):
@@ -255,6 +546,159 @@ class TrabalhoSerializer(serializers.ModelSerializer):
             "data_finalizacao",
         )
         read_only_fields = fields
+
+
+class AdminWorkCreateSerializer(serializers.Serializer):
+    cliente = serializers.PrimaryKeyRelatedField(
+        queryset=Cliente.objects.filter(ativo=True)
+    )
+    paciente_nome = serializers.CharField(max_length=255, trim_whitespace=True)
+    tipo_trabalho = serializers.PrimaryKeyRelatedField(
+        queryset=TipoTrabalho.objects.filter(ativo=True)
+    )
+    materiais = serializers.ListField(
+        child=serializers.CharField(max_length=150, trim_whitespace=True),
+        required=False,
+        allow_empty=True,
+        max_length=20,
+    )
+    dentes = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_empty=True,
+        max_length=32,
+    )
+    data_limite = serializers.DateField(required=False, allow_null=True)
+    observacoes = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=5000,
+        trim_whitespace=True,
+    )
+    ficheiros = serializers.ListField(
+        child=serializers.FileField(allow_empty_file=False),
+        required=False,
+        allow_empty=True,
+        max_length=5,
+    )
+
+    valid_teeth = frozenset(
+        (
+            11, 12, 13, 14, 15, 16, 17, 18,
+            21, 22, 23, 24, 25, 26, 27, 28,
+            31, 32, 33, 34, 35, 36, 37, 38,
+            41, 42, 43, 44, 45, 46, 47, 48,
+        )
+    )
+
+    def validate_paciente_nome(self, value):
+        if not value:
+            raise serializers.ValidationError("Indica o nome do paciente.")
+        return value
+
+    def validate_materiais(self, value):
+        if any(not material for material in value):
+            raise serializers.ValidationError("Indica nomes de materiais válidos.")
+
+        unique_materials = []
+        seen = set()
+        for material in value:
+            normalized = material.casefold()
+            if normalized not in seen:
+                unique_materials.append(material)
+                seen.add(normalized)
+        return unique_materials
+
+    def validate_ficheiros(self, value):
+        max_file_size = 25 * 1024 * 1024
+        max_total_size = 50 * 1024 * 1024
+        if any(upload.size > max_file_size for upload in value):
+            raise serializers.ValidationError(
+                "Cada ficheiro pode ter no máximo 25 MB."
+            )
+        if sum(upload.size for upload in value) > max_total_size:
+            raise serializers.ValidationError(
+                "O tamanho total dos ficheiros não pode exceder 50 MB."
+            )
+        return value
+
+    def validate_dentes(self, value):
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError("Cada dente só pode ser selecionado uma vez.")
+        invalid_teeth = sorted(set(value) - self.valid_teeth)
+        if invalid_teeth:
+            raise serializers.ValidationError(
+                f"Número de dente inválido: {', '.join(map(str, invalid_teeth))}."
+            )
+        return value
+
+    def create(self, validated_data):
+        client = validated_data["cliente"]
+        work_type = validated_data["tipo_trabalho"]
+        materials = validated_data.pop("materiais", [])
+        teeth = validated_data.pop("dentes", [])
+        created_by = validated_data.pop("criada_por")
+        patient_name = validated_data.pop("paciente_nome")
+        due_date = validated_data.pop("data_limite", None)
+        notes = validated_data.pop("observacoes", "")
+        now = timezone.now()
+
+        order = Encomenda.objects.create(
+            cliente=client,
+            criada_por=created_by,
+            paciente_nome=patient_name,
+            estado="Aceite",
+            data_criacao=now,
+        )
+        work = Trabalho.objects.create(
+            encomenda=order,
+            tipo_trabalho=work_type,
+            natureza="Prótese dentária",
+            estado="Por Iniciar",
+            data_limite=due_date,
+            observacoes=notes,
+            criado_em=now,
+            atualizado_em=now,
+        )
+
+        for material_name in materials:
+            material, _ = Material.objects.get_or_create(
+                nome=material_name,
+                defaults={"ativo": True},
+            )
+            if not material.ativo:
+                raise serializers.ValidationError(
+                    {"materiais": f'O material "{material_name}" está inativo.'}
+                )
+            TrabalhoMaterial.objects.create(
+                trabalho=work,
+                material=material,
+                observacoes="",
+            )
+
+        for tooth_number in teeth:
+            TrabalhoDente.objects.create(
+                trabalho=work,
+                numero_dente=tooth_number,
+            )
+
+        templates = TemplateEtapa.objects.select_for_update().filter(
+            tipo_trabalho=work_type,
+            ativa=True,
+        ).order_by("ordem", "pk")
+        for template in templates:
+            EtapaTrabalho.objects.create(
+                trabalho=work,
+                template_etapa=template,
+                nome=template.nome_etapa,
+                ordem=template.ordem,
+                estado="Por Iniciar",
+                ativa=True,
+                criada_em=now,
+                atualizada_em=now,
+            )
+
+        return work
 
 
 class PermissaoColaboradorSerializer(serializers.ModelSerializer):

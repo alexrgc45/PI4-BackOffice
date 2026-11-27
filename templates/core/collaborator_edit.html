@@ -1,0 +1,65 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Editar colaborador | Laboratório{% endblock %}
+{% block breadcrumb_label %}Editar colaborador{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">EQUIPA DO LABORATÓRIO</p>
+            <h1 id="page-title">Editar colaborador</h1>
+            <p class="page-subtitle">Atualize o nome, o e-mail de acesso ou a password do colaborador.</p>
+        </div>
+        <a class="btn btn-outline-gold" href="{% url 'core:collaborator_list' %}">
+            Voltar aos colaboradores
+        </a>
+    </div>
+
+    <form class="work-create-form" id="collaborator-edit-form"
+          data-collaborator-id="{{ collaborator_id }}">
+        <section class="panel" aria-labelledby="collaborator-details-heading">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">DADOS DO COLABORADOR</p>
+                    <h2 id="collaborator-details-heading">Identificação e acesso</h2>
+                </div>
+            </div>
+            <div class="work-create-grid">
+                <div class="work-filter-group">
+                    <label for="collaborator-name">Nome *</label>
+                    <input class="form-control" id="collaborator-name" name="nome"
+                           type="text" maxlength="255" autocomplete="name" required>
+                </div>
+                <div class="work-filter-group">
+                    <label for="collaborator-email">E-mail *</label>
+                    <input class="form-control" id="collaborator-email" name="email"
+                           type="email" maxlength="255" autocomplete="email" required>
+                </div>
+                <div class="work-filter-group">
+                    <label for="collaborator-password">Nova password</label>
+                    <input class="form-control" id="collaborator-password" name="password"
+                           type="password" minlength="8" maxlength="128"
+                           autocomplete="new-password" placeholder="Deixe vazio para manter">
+                    <p class="profile-hint">Deixe vazio para manter a password atual. Se definir uma nova, use pelo menos 8 caracteres.</p>
+                </div>
+            </div>
+        </section>
+
+        <p class="dashboard-status" id="collaborator-form-status" role="status"
+           aria-live="polite">A verificar permissões…</p>
+        <div class="work-create-actions">
+            <button class="btn btn-gold" id="save-collaborator-button" type="submit" disabled>
+                Guardar alterações
+            </button>
+            <a class="text-link" id="collaborator-list-link"
+               href="{% url 'core:collaborator_list' %}" hidden>Voltar à lista de colaboradores →</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-collaborator-form.js' %}?v=1"></script>
+{% endblock %}

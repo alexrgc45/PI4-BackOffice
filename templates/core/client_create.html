@@ -1,0 +1,115 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}{% if is_editing %}Editar cliente{% else %}Criar cliente{% endif %} | Laboratório{% endblock %}
+{% block breadcrumb_label %}{% if is_editing %}Editar cliente{% else %}Criar cliente{% endif %}{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">GESTÃO DE CLIENTES</p>
+            <h1 id="page-title">{% if is_editing %}Editar cliente{% else %}Criar cliente{% endif %}</h1>
+            <p class="page-subtitle">
+                {% if is_editing %}Atualize os dados de identificação, contacto e médicos responsáveis.{% else %}Registe os dados de identificação e contacto do cliente.{% endif %}
+            </p>
+        </div>
+        <a class="btn btn-outline-gold" href="{% url 'core:client_list' %}">
+            Voltar aos clientes
+        </a>
+    </div>
+
+    <form class="work-create-form" id="client-create-form"
+          data-client-id="{{ client_id|default_if_none:'' }}">
+        <section class="panel" aria-labelledby="client-details-heading">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">DADOS DO CLIENTE</p>
+                    <h2 id="client-details-heading">Identificação e contacto</h2>
+                </div>
+            </div>
+            <div class="work-create-grid">
+                <div class="work-filter-group">
+                    <label for="client-name">Nome do cliente *</label>
+                    <input class="form-control" id="client-name" name="nome"
+                           type="text" maxlength="255" autocomplete="organization"
+                           placeholder="Nome da clínica ou do cliente" required>
+                </div>
+                <div class="work-filter-group">
+                    <label for="client-nif">NIF *</label>
+                    <input class="form-control" id="client-nif" name="nif"
+                           type="text" maxlength="9" pattern="[0-9]{9}" inputmode="numeric"
+                           autocomplete="off" placeholder="Número de identificação fiscal"
+                           title="O NIF deve ter exatamente 9 algarismos." required>
+                </div>
+                <div class="work-filter-group">
+                    <label for="client-email">E-mail de contacto / login *</label>
+                    <input class="form-control" id="client-email" name="email_contacto"
+                           type="email" maxlength="255" autocomplete="email"
+                           placeholder="nome@clinica.pt" required>
+                </div>
+                <div class="work-filter-group">
+                    <label for="client-password">
+                        Password{% if not is_editing %} *{% endif %}
+                    </label>
+                    <input class="form-control" id="client-password" name="password"
+                           type="password" minlength="8" maxlength="128"
+                           autocomplete="new-password"
+                           placeholder="{% if is_editing %}Deixe vazio para manter{% else %}Mínimo de 8 caracteres{% endif %}"
+                           aria-describedby="client-password-hint"
+                           {% if not is_editing %}required{% endif %}>
+                    <p class="profile-hint" id="client-password-hint">
+                        {% if is_editing %}Deixe vazio para manter a password atual. Se o cliente ainda não tiver conta, será necessário definir uma password.{% else %}Será usada pelo cliente para iniciar sessão; mínimo de 8 caracteres.{% endif %}
+                    </p>
+                </div>
+                <div class="work-filter-group">
+                    <label for="client-phone">Telefone</label>
+                    <input class="form-control" id="client-phone" name="telefone"
+                           type="tel" maxlength="11"
+                           pattern="[0-9]{3} [0-9]{3} [0-9]{3}"
+                           inputmode="numeric" autocomplete="tel"
+                           placeholder="912 345 678"
+                           title="O telefone deve ter exatamente 9 algarismos.">
+                </div>
+                <div class="work-filter-group work-create-field-wide">
+                    <label for="client-address">Morada</label>
+                    <textarea class="form-control" id="client-address" name="morada"
+                              rows="3" placeholder="Morada do cliente"></textarea>
+                </div>
+                <fieldset class="work-create-field work-create-field-wide">
+                    <legend>Médicos responsáveis *</legend>
+                    <div class="work-create-material-entry">
+                        <label class="visually-hidden" for="doctor-name">
+                            Nome do médico responsável
+                        </label>
+                        <input class="form-control" id="doctor-name" type="text"
+                               maxlength="255" autocomplete="name"
+                               placeholder="Nome completo do médico">
+                        <button class="permission-action" id="add-doctor" type="button">
+                            Adicionar médico
+                        </button>
+                    </div>
+                    <div class="work-create-materials" id="doctor-list"
+                         aria-live="polite"></div>
+                    <p class="profile-hint" id="doctor-summary" role="status"
+                       aria-live="polite">Adicione pelo menos um médico responsável.</p>
+                </fieldset>
+            </div>
+        </section>
+
+        <p class="dashboard-status" id="client-form-status" role="status"
+           aria-live="polite">A verificar permissões…</p>
+        <div class="work-create-actions">
+            <button class="btn btn-gold" id="save-client-button" type="submit" disabled>
+                {% if is_editing %}Guardar alterações{% else %}Criar cliente{% endif %}
+            </button>
+            <a class="text-link" id="client-list-link"
+               href="{% url 'core:client_list' %}" hidden>Voltar à lista de clientes →</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-client-form.js' %}?v=2"></script>
+{% endblock %}

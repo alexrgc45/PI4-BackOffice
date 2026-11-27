@@ -1,6 +1,13 @@
+import mimetypes
+from pathlib import Path
+from uuid import uuid4
+
 from django.contrib.auth.hashers import make_password
-from django.db import IntegrityError, transaction
+from django.core.exceptions import SuspiciousFileOperation
+from django.core.files.storage import default_storage
+from django.db import DatabaseError, IntegrityError, transaction
 from django.db.models import F, Max, Q
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, viewsets
@@ -17,6 +24,7 @@ from core.models import (
     Convite,
     EtapaTrabalho,
     Encomenda,
+    Ficheiro,
     Notificacao,
     PermissaoColaborador,
     RegistoUtilizador,
@@ -40,14 +48,19 @@ from .roles import (
     get_user_role,
 )
 from .serializers import (
+    AdminClienteCreateSerializer,
+    AdminColaboradorUpdateSerializer,
     AdminPasswordChangeSerializer,
     AdminProfileSerializer,
+    AdminWorkCreateSerializer,
+    ClienteDetailSerializer,
     ClienteSerializer,
     ColaboradorSerializer,
     CurrentUserSerializer,
     EncomendaRececaoSerializer,
     PermissaoColaboradorSerializer,
     TokenObtainSerializer,
+    TokenRefreshSerializer,
     TrabalhoSerializer,
     NotificacaoSerializer,
     UtilizadorPendenteSerializer,
@@ -60,6 +73,16 @@ from .serializers import (
 class TokenObtainView(generics.GenericAPIView):
     permission_classes = (AllowAny,)
     serializer_class = TokenObtainSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
+
+
+class TokenRefreshView(generics.GenericAPIView):
+    permission_classes = (AllowAny,)
+    serializer_class = TokenRefreshSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -132,12 +155,134 @@ class AdminPasswordChangeView(APIView):
         return Response({"detail": "Palavra-passe alterada com sucesso."})
 
 
-class ClienteListView(generics.ListAPIView):
+class AdminWorkCreateView(APIView):
+    permission_classes = (IsAdministrator,)
+
+    def post(self, request):
+        serializer = AdminWorkCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        uploaded_files = serializer.validated_data.pop("ficheiros", [])
+        stored_keys = []
+        file_records = []
+
+        try:
+            with transaction.atomic():
+                client = get_object_or_404(
+                    Cliente.objects.select_for_update(),
+                    pk=serializer.validated_data["cliente"].pk,
+                    ativo=True,
+                )
+                work_type = get_object_or_404(
+                    TipoTrabalho.objects.select_for_update(),
+                    pk=serializer.validated_data["tipo_trabalho"].pk,
+                    ativo=True,
+                )
+                work = serializer.save(
+                    cliente=client,
+                    tipo_trabalho=work_type,
+                    criada_por=request.user,
+                )
+
+                for uploaded_file in uploaded_files:
+                    original_name = Path(
+                        str(uploaded_file.name).replace("\\", "/")
+                    ).name[:255]
+                    storage_key = default_storage.save(
+                        f"trabalhos/{work.pk}/{uuid4().hex}",
+                        uploaded_file,
+                    )
+                    stored_keys.append(storage_key)
+                    mime_type = (
+                        mimetypes.guess_type(original_name)[0]
+                        or "application/octet-stream"
+                    )
+                    file_records.append(
+                        Ficheiro.objects.create(
+                            trabalho=work,
+                            enviado_por=request.user,
+                            nome_original=original_name,
+                            chave_armazenamento=storage_key,
+                            tipo_mime=mime_type,
+                            categoria="imagem" if mime_type.startswith("image/") else "outro",
+                            tamanho_bytes=uploaded_file.size,
+                            visivel_cliente=False,
+                            enviado_em=timezone.now(),
+                        )
+                    )
+        except (DatabaseError, OSError, SuspiciousFileOperation):
+            for storage_key in stored_keys:
+                default_storage.delete(storage_key)
+            raise
+
+        response_data = TrabalhoSerializer(work).data
+        response_data["ficheiros"] = [
+            {
+                "id": file_record.pk,
+                "nome_original": file_record.nome_original,
+                "categoria": file_record.categoria,
+                "tamanho_bytes": file_record.tamanho_bytes,
+            }
+            for file_record in file_records
+        ]
+        return Response(response_data, status=201)
+
+
+class AdminWorkFileDownloadView(APIView):
+    permission_classes = (IsAdministrator,)
+
+    def get(self, request, pk):
+        stored_file = get_object_or_404(Ficheiro, pk=pk)
+        try:
+            content = default_storage.open(stored_file.chave_armazenamento, "rb")
+        except FileNotFoundError as exc:
+            raise NotFound("O ficheiro anexado não está disponível.") from exc
+
+        response = FileResponse(
+            content,
+            as_attachment=True,
+            filename=stored_file.nome_original,
+            content_type=stored_file.tipo_mime or "application/octet-stream",
+        )
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Cache-Control"] = "private, no-store"
+        return response
+
+
+class ClienteListCreateView(generics.ListCreateAPIView):
     serializer_class = ClienteSerializer
     permission_classes = (IsAdministrator,)
 
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return AdminClienteCreateSerializer
+        return ClienteSerializer
+
     def get_queryset(self):
-        return Cliente.objects.order_by("nome", "pk")
+        return Cliente.objects.prefetch_related("medicos_responsaveis").order_by(
+            "nome",
+            "pk",
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(
+            criado_por_admin=self.request.user,
+            tem_conta=True,
+            ativo=True,
+        )
+
+
+class ClienteDetailView(generics.RetrieveUpdateAPIView):
+    permission_classes = (IsAdministrator,)
+
+    def get_serializer_class(self):
+        if self.request.method in {"PUT", "PATCH"}:
+            return AdminClienteCreateSerializer
+        return ClienteDetailSerializer
+
+    def get_queryset(self):
+        return Cliente.objects.select_related("utilizador").prefetch_related(
+            "medicos_responsaveis"
+        )
 
 
 class ColaboradorListView(generics.ListAPIView):
@@ -148,6 +293,20 @@ class ColaboradorListView(generics.ListAPIView):
         return Colaborador.objects.select_related("utilizador").prefetch_related(
             "permissoes"
         ).order_by("nome", "pk")
+
+
+class ColaboradorDetailView(generics.RetrieveUpdateAPIView):
+    permission_classes = (IsAdministrator,)
+
+    def get_serializer_class(self):
+        if self.request.method in {"PUT", "PATCH"}:
+            return AdminColaboradorUpdateSerializer
+        return ColaboradorSerializer
+
+    def get_queryset(self):
+        return Colaborador.objects.select_related("utilizador").prefetch_related(
+            "permissoes"
+        )
 
 
 class UtilizadorPendenteListView(generics.ListAPIView):

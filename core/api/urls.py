@@ -1,11 +1,14 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     AdminPasswordChangeView,
     AdminProfileView,
-    ClienteListView,
+    AdminWorkFileDownloadView,
+    AdminWorkCreateView,
+    ClienteDetailView,
+    ClienteListCreateView,
+    ColaboradorDetailView,
     ColaboradorListView,
     CurrentUserView,
     EncomendaRececaoListView,
@@ -16,6 +19,7 @@ from .views import (
     TemplateEtapaListCreateView,
     TemplateEtapaUpdateView,
     TokenObtainView,
+    TokenRefreshView,
     TrabalhoViewSet,
     TipoTrabalhoListView,
     UtilizadorPendenteApproveView,
@@ -38,8 +42,24 @@ urlpatterns = [
         AdminPasswordChangeView.as_view(),
         name="admin-password-change",
     ),
-    path("clientes/", ClienteListView.as_view(), name="cliente-list"),
+    path(
+        "admin/trabalhos/",
+        AdminWorkCreateView.as_view(),
+        name="admin-work-create",
+    ),
+    path(
+        "admin/ficheiros/<int:pk>/",
+        AdminWorkFileDownloadView.as_view(),
+        name="admin-work-file-download",
+    ),
+    path("clientes/", ClienteListCreateView.as_view(), name="cliente-list"),
+    path("clientes/<int:pk>/", ClienteDetailView.as_view(), name="cliente-detail"),
     path("colaboradores/", ColaboradorListView.as_view(), name="colaborador-list"),
+    path(
+        "colaboradores/<int:pk>/",
+        ColaboradorDetailView.as_view(),
+        name="colaborador-detail",
+    ),
     path(
         "utilizadores/pendentes/",
         UtilizadorPendenteListView.as_view(),

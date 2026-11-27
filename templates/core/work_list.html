@@ -12,7 +12,13 @@
             <h1 id="page-title">Trabalhos</h1>
             <p class="page-subtitle">Consulte o estado e os prazos dos trabalhos do laboratório.</p>
         </div>
-        <button class="btn btn-gold" id="refresh-works" type="button">Atualizar lista</button>
+        <div class="work-list-actions">
+            <a class="btn btn-gold"
+               href="{% url 'core:work_create' %}">
+                Criar trabalho em nome de cliente
+            </a>
+            <button class="btn btn-gold" id="refresh-works" type="button">Atualizar lista</button>
+        </div>
     </div>
 
     <section class="panel work-list-panel" aria-labelledby="work-list-heading">

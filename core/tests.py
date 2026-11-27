@@ -1,11 +1,15 @@
-from datetime import datetime, timezone as datetime_timezone
+from datetime import datetime, timedelta, timezone as datetime_timezone
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.contrib.auth.hashers import check_password, make_password
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone as django_timezone
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import (
     Administrador,
@@ -15,6 +19,9 @@ from .models import (
     Convite,
     EtapaTrabalho,
     Encomenda,
+    Ficheiro,
+    MedicoResponsavel,
+    Material,
     Mensagem,
     Notificacao,
     Nota,
@@ -25,6 +32,8 @@ from .models import (
     TemplateEtapa,
     TipoTrabalho,
     Trabalho,
+    TrabalhoDente,
+    TrabalhoMaterial,
     Utilizador,
 )
 
@@ -48,7 +57,20 @@ class DashboardTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Todos os trabalhos")
+        self.assertContains(response, "Criar trabalho em nome de cliente")
+        self.assertContains(response, 'href="/trabalhos/criar/"')
         self.assertContains(response, "/static/js/admin-work-list.js")
+
+    def test_admin_work_create_page_loads(self):
+        response = self.client.get("/trabalhos/criar/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Criar trabalho em nome de cliente")
+        self.assertContains(response, "Odontograma")
+        self.assertContains(response, "Selecionar todos")
+        self.assertContains(response, "Remover todos")
+        self.assertContains(response, 'type="file"')
+        self.assertContains(response, "/static/js/admin-work-create.js")
 
     def test_admin_reception_page_loads(self):
         response = self.client.get("/rececao-trabalhos/")
@@ -69,8 +91,33 @@ class DashboardTests(TestCase):
         response = self.client.get("/clientes/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Clientes")
+        self.assertContains(response, "Gestão de Clientes")
+        self.assertContains(response, "Novo cliente")
+        self.assertContains(response, "Clínicas, médicos e pacientes associados")
+        self.assertContains(response, "Médicos responsáveis pela clínica")
+        self.assertContains(response, 'id="client-detail"')
+        self.assertContains(response, 'id="client-rows"')
+        self.assertContains(response, 'href="/clientes/criar/"')
         self.assertContains(response, "/static/js/admin-client-list.js")
+
+    def test_admin_client_create_page_loads(self):
+        response = self.client.get("/clientes/criar/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Criar cliente")
+        self.assertContains(response, "Identificação e contacto")
+        self.assertContains(response, 'id="doctor-name"')
+        self.assertContains(response, 'id="client-password"')
+        self.assertContains(response, 'pattern="[0-9]{9}"')
+        self.assertContains(response, "/static/js/admin-client-form.js")
+
+    def test_admin_client_edit_page_loads(self):
+        response = self.client.get("/clientes/123/editar/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Editar cliente")
+        self.assertContains(response, 'data-client-id="123"')
+        self.assertContains(response, "Guardar alterações")
 
     def test_admin_collaborator_page_loads(self):
         response = self.client.get("/colaboradores/")
@@ -78,7 +125,16 @@ class DashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Colaboradores")
         self.assertContains(response, "/static/js/admin-collaborator-list.js")
+        self.assertContains(response, "Ação")
         self.assertContains(response, 'href="/permissoes/"')
+
+    def test_admin_collaborator_edit_page_loads(self):
+        response = self.client.get("/colaboradores/123/editar/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Editar colaborador")
+        self.assertContains(response, 'data-collaborator-id="123"')
+        self.assertContains(response, "Guardar alterações")
 
     def test_admin_pending_user_page_loads(self):
         response = self.client.get("/aceitar-utilizadores/")
@@ -175,6 +231,19 @@ class ApiAuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("access", response.data)
         self.assertIn("refresh", response.data)
+        refresh_token = RefreshToken(response.data["refresh"])
+        self.assertEqual(
+            refresh_token["exp"] - refresh_token["iat"],
+            int(timedelta(hours=1).total_seconds()),
+        )
+
+        refresh_response = self.client.post(
+            "/api/v1/auth/token/refresh/",
+            {"refresh": response.data["refresh"]},
+            format="json",
+        )
+        self.assertEqual(refresh_response.status_code, 200)
+        self.assertNotIn("refresh", refresh_response.data)
 
     @patch("core.api.serializers.Utilizador.objects.get")
     def test_token_login_rejects_invalid_password(self, get_user):
@@ -194,6 +263,30 @@ class ApiAuthenticationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 401)
+
+    @patch("core.api.serializers.Utilizador.objects.get")
+    def test_refresh_rejects_token_older_than_session_lifetime(self, get_user):
+        user = Utilizador(
+            id=1,
+            email="teste@example.com",
+            password_hash=make_password("password-123"),
+            ativo=True,
+            criado_em=datetime.now(datetime_timezone.utc),
+            atualizado_em=datetime.now(datetime_timezone.utc),
+        )
+        now = int(django_timezone.now().timestamp())
+        refresh = RefreshToken.for_user(user)
+        refresh["iat"] = now - int(timedelta(hours=1).total_seconds()) - 1
+        refresh["exp"] = now + int(timedelta(days=6).total_seconds())
+
+        response = self.client.post(
+            "/api/v1/auth/token/refresh/",
+            {"refresh": str(refresh)},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 401)
+        get_user.assert_not_called()
 
     @patch(
         "core.api.serializers.get_user_permissions",
@@ -245,8 +338,12 @@ class WorkAccessApiTests(TransactionTestCase):
         TentativaLogin,
         TipoTrabalho,
         TemplateEtapa,
+        Material,
         Encomenda,
         Trabalho,
+        Ficheiro,
+        TrabalhoDente,
+        TrabalhoMaterial,
         EtapaTrabalho,
         RegistoEtapa,
         Nota,
@@ -276,6 +373,9 @@ class WorkAccessApiTests(TransactionTestCase):
         Nota.objects.all().delete()
         RegistoEtapa.objects.all().delete()
         EtapaTrabalho.objects.all().delete()
+        Ficheiro.objects.all().delete()
+        TrabalhoDente.objects.all().delete()
+        TrabalhoMaterial.objects.all().delete()
         TemplateEtapa.objects.all().delete()
         TentativaLogin.objects.all().delete()
         RegistoUtilizador.objects.all().delete()
@@ -287,6 +387,7 @@ class WorkAccessApiTests(TransactionTestCase):
         Colaborador.objects.all().delete()
         Administrador.objects.all().delete()
         TipoTrabalho.objects.all().delete()
+        Material.objects.all().delete()
         Utilizador.objects.all().delete()
 
         self.api = APIClient()
@@ -326,13 +427,15 @@ class WorkAccessApiTests(TransactionTestCase):
 
     def create_client(self, email, nif):
         user = self.create_user(email)
-        return Cliente.objects.create(
+        client = Cliente.objects.create(
             utilizador=user,
             nome=email,
             nif=nif,
             tem_conta=True,
             ativo=True,
         )
+        MedicoResponsavel.objects.create(cliente=client, nome=f"Dr. {nif}")
+        return client
 
     def create_pending_client(self, email, nif):
         user = self.create_user(email, active=False)
@@ -343,6 +446,7 @@ class WorkAccessApiTests(TransactionTestCase):
             tem_conta=True,
             ativo=False,
         )
+        MedicoResponsavel.objects.create(cliente=client, nome=f"Dr. {nif}")
         return user, client
 
     def create_pending_collaborator(self, email):
@@ -514,6 +618,182 @@ class WorkAccessApiTests(TransactionTestCase):
         self.assertEqual(profile_response.status_code, 403)
         self.assertEqual(password_response.status_code, 403)
 
+    def test_administrator_can_create_a_work_on_behalf_of_a_client(self):
+        first_template = self.create_template_stage("Modelação", 1)
+        second_template = self.create_template_stage("Acabamento", 2)
+        self.create_template_stage("Etapa arquivada", 3, active=False)
+        self.api.force_authenticate(user=self.admin)
+
+        response = self.api.post(
+            "/api/v1/admin/trabalhos/",
+            {
+                "cliente": self.client_one.pk,
+                "paciente_nome": "Paciente de teste",
+                "tipo_trabalho": self.work_type.pk,
+                "materiais": ["Dissilicato de lítio", "Resina"],
+                "dentes": [11, 21],
+                "data_limite": "2026-12-15",
+                "observacoes": "Indicação clínica de teste.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        work = Trabalho.objects.get(pk=response.data["id"])
+        order = Encomenda.objects.get(pk=work.encomenda_id)
+        self.assertEqual(order.cliente_id, self.client_one.pk)
+        self.assertEqual(order.criada_por_id, self.admin.pk)
+        self.assertEqual(order.paciente_nome, "Paciente de teste")
+        self.assertEqual(order.estado, "Aceite")
+        self.assertEqual(work.estado, "Por Iniciar")
+        self.assertEqual(work.data_limite.isoformat(), "2026-12-15")
+        self.assertEqual(work.observacoes, "Indicação clínica de teste.")
+        self.assertEqual(
+            set(
+                TrabalhoMaterial.objects.filter(trabalho=work)
+                .values_list("material__nome", flat=True)
+            ),
+            {"Dissilicato de lítio", "Resina"},
+        )
+        self.assertEqual(
+            set(
+                TrabalhoDente.objects.filter(trabalho=work)
+                .values_list("numero_dente", flat=True)
+            ),
+            {11, 21},
+        )
+        self.assertEqual(
+            list(
+                EtapaTrabalho.objects.filter(trabalho=work)
+                .order_by("ordem")
+                .values_list("template_etapa_id", flat=True)
+            ),
+            [first_template.pk, second_template.pk],
+        )
+
+    def test_work_creation_requires_admin_and_valid_teeth(self):
+        payload = {
+            "cliente": self.client_one.pk,
+            "paciente_nome": "Paciente de teste",
+            "tipo_trabalho": self.work_type.pk,
+            "materiais": ["Resina"],
+            "dentes": [19],
+        }
+        self.api.force_authenticate(user=self.collaborator)
+
+        forbidden_response = self.api.post(
+            "/api/v1/admin/trabalhos/",
+            payload,
+            format="json",
+        )
+        self.assertEqual(forbidden_response.status_code, 403)
+
+        self.api.force_authenticate(user=self.admin)
+        invalid_response = self.api.post(
+            "/api/v1/admin/trabalhos/",
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(invalid_response.status_code, 400)
+        self.assertEqual(Trabalho.objects.count(), 4)
+        self.assertEqual(Encomenda.objects.count(), 5)
+
+    def test_work_creation_rolls_back_if_selected_material_is_inactive(self):
+        Material.objects.create(nome="Resina inativa", ativo=False)
+        self.api.force_authenticate(user=self.admin)
+
+        response = self.api.post(
+            "/api/v1/admin/trabalhos/",
+            {
+                "cliente": self.client_one.pk,
+                "paciente_nome": "Paciente de teste",
+                "tipo_trabalho": self.work_type.pk,
+                "materiais": ["Resina inativa"],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Trabalho.objects.count(), 4)
+        self.assertEqual(Encomenda.objects.count(), 5)
+
+    def test_administrator_can_create_work_without_materials_and_attach_files(self):
+        image = SimpleUploadedFile(
+            "scan.png",
+            b"fake image data",
+            content_type="image/png",
+        )
+        document = SimpleUploadedFile(
+            "prescription.pdf",
+            b"fake pdf data",
+            content_type="application/pdf",
+        )
+        self.api.force_authenticate(user=self.admin)
+
+        with TemporaryDirectory() as media_root:
+            with self.settings(MEDIA_ROOT=media_root):
+                response = self.api.post(
+                    "/api/v1/admin/trabalhos/",
+                    {
+                        "cliente": str(self.client_one.pk),
+                        "paciente_nome": "Paciente com anexos",
+                        "tipo_trabalho": str(self.work_type.pk),
+                        "ficheiros": [image, document],
+                    },
+                    format="multipart",
+                )
+
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(len(response.data["ficheiros"]), 2)
+                work = Trabalho.objects.get(pk=response.data["id"])
+                self.assertEqual(
+                    TrabalhoMaterial.objects.filter(trabalho=work).count(),
+                    0,
+                )
+                stored_files = list(Ficheiro.objects.filter(trabalho=work).order_by("pk"))
+                self.assertEqual(len(stored_files), 2)
+                self.assertEqual(
+                    {stored_file.nome_original for stored_file in stored_files},
+                    {"scan.png", "prescription.pdf"},
+                )
+                self.assertTrue(
+                    all(not stored_file.visivel_cliente for stored_file in stored_files)
+                )
+                for stored_file in stored_files:
+                    self.assertTrue(
+                        default_storage.exists(stored_file.chave_armazenamento)
+                    )
+
+                download_response = self.api.get(
+                    f"/api/v1/admin/ficheiros/{stored_files[0].pk}/"
+                )
+
+                self.assertEqual(download_response.status_code, 200)
+                self.assertIn("attachment", download_response["Content-Disposition"])
+                self.assertEqual(
+                    b"".join(download_response.streaming_content),
+                    b"fake image data",
+                )
+
+    def test_only_administrators_can_download_work_files(self):
+        stored_file = Ficheiro.objects.create(
+            trabalho=self.client_work,
+            enviado_por=self.admin,
+            nome_original="scan.png",
+            chave_armazenamento="missing/scan",
+            tipo_mime="image/png",
+            categoria="imagem",
+            tamanho_bytes=10,
+            visivel_cliente=False,
+            enviado_em=django_timezone.now(),
+        )
+        self.api.force_authenticate(user=self.collaborator)
+
+        response = self.api.get(f"/api/v1/admin/ficheiros/{stored_file.pk}/")
+
+        self.assertEqual(response.status_code, 403)
+
     def test_client_only_sees_works_for_own_clinic(self):
         self.api.force_authenticate(user=self.client_one.utilizador)
 
@@ -573,6 +853,7 @@ class WorkAccessApiTests(TransactionTestCase):
             {
                 "id",
                 "nome",
+                "medicos_responsaveis",
                 "nif",
                 "email_contacto",
                 "telefone",
@@ -582,14 +863,313 @@ class WorkAccessApiTests(TransactionTestCase):
         )
         self.assertEqual(
             self.api.post("/api/v1/clientes/", {}, format="json").status_code,
-            405,
+            400,
         )
 
         self.api.force_authenticate(user=self.collaborator)
         self.assertEqual(self.api.get("/api/v1/clientes/").status_code, 403)
-
+        self.assertEqual(
+            self.api.post("/api/v1/clientes/", {}, format="json").status_code,
+            403,
+        )
         self.api.force_authenticate(user=self.client_one.utilizador)
         self.assertEqual(self.api.get("/api/v1/clientes/").status_code, 403)
+
+    def test_administrator_can_update_collaborator_and_password(self):
+        self.api.force_authenticate(user=self.admin)
+        url = f"/api/v1/colaboradores/{self.collaborator.pk}/"
+
+        detail_response = self.api.get(url)
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertEqual(detail_response.data["email"], "tecnico@example.com")
+
+        response = self.api.patch(
+            url,
+            {
+                "nome": "Técnico Atualizado",
+                "email": "novo.tecnico@example.com",
+                "password": "password-nova-123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.collaborator.refresh_from_db()
+        collaborator = Colaborador.objects.get(pk=self.collaborator.pk)
+        self.assertEqual(collaborator.nome, "Técnico Atualizado")
+        self.assertEqual(self.collaborator.email, "novo.tecnico@example.com")
+        self.assertTrue(
+            check_password("password-nova-123", self.collaborator.password_hash)
+        )
+
+        self.api.force_authenticate(user=self.collaborator)
+        self.assertEqual(
+            self.api.patch(
+                url,
+                {"nome": "Alteração não autorizada"},
+                format="json",
+            ).status_code,
+            403,
+        )
+
+    def test_client_edit_keeps_or_updates_account_password(self):
+        self.api.force_authenticate(user=self.admin)
+        url = f"/api/v1/clientes/{self.client_one.pk}/"
+
+        unchanged_response = self.api.patch(
+            url,
+            {"nome": "Clínica com conta"},
+            format="json",
+        )
+        self.assertEqual(unchanged_response.status_code, 200, unchanged_response.data)
+        self.client_one.utilizador.refresh_from_db()
+        self.assertTrue(
+            check_password("test-password", self.client_one.utilizador.password_hash)
+        )
+
+        changed_response = self.api.patch(
+            url,
+            {"password": "nova-password-123"},
+            format="json",
+        )
+        self.assertEqual(changed_response.status_code, 200, changed_response.data)
+        self.client_one.utilizador.refresh_from_db()
+        self.assertTrue(
+            check_password("nova-password-123", self.client_one.utilizador.password_hash)
+        )
+        self.assertNotIn("password", changed_response.data)
+
+    def test_editing_client_without_account_creates_account(self):
+        self.api.force_authenticate(user=self.admin)
+        client = Cliente.objects.create(
+            criado_por_admin=self.admin,
+            nome="Clínica sem conta",
+            nif="444444444",
+            email_contacto="sem.conta@example.com",
+            tem_conta=False,
+            ativo=True,
+        )
+        MedicoResponsavel.objects.create(cliente=client, nome="Dra. Exemplo")
+
+        response = self.api.patch(
+            f"/api/v1/clientes/{client.pk}/",
+            {
+                "email_contacto": "nova.conta@example.com",
+                "password": "password-nova-123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        client.refresh_from_db()
+        self.assertTrue(client.tem_conta)
+        self.assertEqual(client.utilizador.email, "nova.conta@example.com")
+        self.assertTrue(
+            check_password("password-nova-123", client.utilizador.password_hash)
+        )
+
+    def test_administrator_can_update_client_and_responsible_doctors(self):
+        self.api.force_authenticate(user=self.admin)
+        initial_detail = self.api.get(
+            f"/api/v1/clientes/{self.client_one.pk}/"
+        )
+        self.assertEqual(
+            initial_detail.data["email_contacto"],
+            "cliente1@example.com",
+        )
+
+        response = self.api.patch(
+            f"/api/v1/clientes/{self.client_one.pk}/",
+            {
+                "nome": "Clínica Atualizada",
+                "email_contacto": "novo@example.com",
+                "telefone": "912345678",
+                "morada": "Rua Nova, 10",
+                "medicos_responsaveis": ["Dra. Nova", "Dr. Atualizado"],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.client_one.refresh_from_db()
+        self.assertEqual(self.client_one.nome, "Clínica Atualizada")
+        self.assertEqual(self.client_one.email_contacto, "novo@example.com")
+        self.assertEqual(self.client_one.utilizador.email, "novo@example.com")
+        self.assertEqual(self.client_one.telefone, "912345678")
+        self.assertEqual(self.client_one.morada, "Rua Nova, 10")
+        self.assertCountEqual(
+            response.data["medicos_responsaveis"],
+            ["Dra. Nova", "Dr. Atualizado"],
+        )
+        self.assertCountEqual(
+            MedicoResponsavel.objects.filter(cliente=self.client_one)
+            .values_list("nome", flat=True),
+            ["Dra. Nova", "Dr. Atualizado"],
+        )
+
+        detail_response = self.api.get(
+            f"/api/v1/clientes/{self.client_one.pk}/"
+        )
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertEqual(detail_response.data["morada"], "Rua Nova, 10")
+
+        self.api.force_authenticate(user=self.collaborator)
+        self.assertEqual(
+            self.api.patch(
+                f"/api/v1/clientes/{self.client_one.pk}/",
+                {"nome": "Alteração não autorizada"},
+                format="json",
+            ).status_code,
+            403,
+        )
+
+    def test_client_api_rejects_nif_and_phone_without_nine_digits(self):
+        self.api.force_authenticate(user=self.admin)
+        url = f"/api/v1/clientes/{self.client_one.pk}/"
+
+        invalid_payloads = (
+            {"nif": "12345678"},
+            {"nif": "12345678A"},
+            {"telefone": "12345678"},
+            {"telefone": "12345678A"},
+            {"telefone": "123 456 789"},
+        )
+        for payload in invalid_payloads:
+            with self.subTest(payload=payload):
+                response = self.api.patch(url, payload, format="json")
+                self.assertEqual(response.status_code, 400, response.data)
+
+    def test_client_creation_rejects_invalid_client_data(self):
+        self.api.force_authenticate(user=self.admin)
+
+        invalid_payloads = (
+            {
+                "nome": "Clínica NIF inválido",
+                "nif": "12345678A",
+                "email_contacto": "nif-invalid@example.com",
+                "password": "client-password-123",
+                "medicos_responsaveis": ["Dra. Teste"],
+            },
+            {
+                "nome": "Clínica telefone inválido",
+                "nif": "333333333",
+                "email_contacto": "phone-invalid@example.com",
+                "password": "client-password-123",
+                "telefone": "12345678A",
+                "medicos_responsaveis": ["Dra. Teste"],
+            },
+            {
+                "nome": "Clínica sem password",
+                "nif": "333333334",
+                "email_contacto": "no-password@example.com",
+                "password": "short",
+                "medicos_responsaveis": ["Dra. Teste"],
+            },
+            {
+                "nome": "Clínica com e-mail ocupado",
+                "nif": "333333335",
+                "email_contacto": self.admin.email,
+                "password": "client-password-123",
+                "medicos_responsaveis": ["Dra. Teste"],
+            },
+        )
+        for payload in invalid_payloads:
+            with self.subTest(payload=payload):
+                response = self.api.post(
+                    "/api/v1/clientes/",
+                    payload,
+                    format="json",
+                )
+                self.assertEqual(response.status_code, 400, response.data)
+
+    def test_administrator_can_create_client_with_hashed_account(self):
+        self.api.force_authenticate(user=self.admin)
+
+        response = self.api.post(
+            "/api/v1/clientes/",
+            {
+                "nome": "Clínica Exemplo",
+                "nif": "987654321",
+                "email_contacto": "contacto@exemplo.pt",
+                "password": "cliente-password-123",
+                "telefone": "912345678",
+                "morada": "Rua de Exemplo, 1",
+                "medicos_responsaveis": ["Dra. Ana Rodrigues", "Dr. João Silva"],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        client = Cliente.objects.get(nif="987654321")
+        self.assertEqual(client.nome, "Clínica Exemplo")
+        self.assertIsNotNone(client.utilizador_id)
+        self.assertEqual(client.criado_por_admin_id, self.admin.pk)
+        self.assertTrue(client.tem_conta)
+        self.assertTrue(client.ativo)
+        self.assertEqual(client.utilizador.email, "contacto@exemplo.pt")
+        self.assertTrue(client.utilizador.ativo)
+        self.assertTrue(
+            check_password("cliente-password-123", client.utilizador.password_hash)
+        )
+        self.assertNotIn("password", response.data)
+        self.api.force_authenticate(user=None)
+        login_response = self.api.post(
+            "/api/v1/auth/token/",
+            {
+                "email": "contacto@exemplo.pt",
+                "password": "cliente-password-123",
+            },
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 200, login_response.data)
+        profile_response = self.api.get(
+            "/api/v1/auth/me/",
+            HTTP_AUTHORIZATION=f"Bearer {login_response.data['access']}",
+        )
+        self.assertEqual(profile_response.status_code, 200)
+        self.assertEqual(profile_response.data["perfil"], "cliente")
+        self.api.force_authenticate(user=self.admin)
+        self.assertCountEqual(
+            list(
+                MedicoResponsavel.objects.filter(cliente=client)
+                .order_by("nome")
+                .values_list("nome", flat=True)
+            ),
+            ["Dr. João Silva", "Dra. Ana Rodrigues"],
+        )
+        self.assertCountEqual(
+            response.data["medicos_responsaveis"],
+            ["Dra. Ana Rodrigues", "Dr. João Silva"],
+        )
+
+        duplicate_response = self.api.post(
+            "/api/v1/clientes/",
+            {
+                "nome": "Cliente duplicado",
+                "nif": "987654321",
+                "email_contacto": "duplicado@example.pt",
+                "password": "cliente-password-123",
+                "medicos_responsaveis": ["Dr. Outro Médico"],
+            },
+            format="json",
+        )
+        self.assertEqual(duplicate_response.status_code, 400)
+
+    def test_administrator_must_add_at_least_one_responsible_doctor(self):
+        self.api.force_authenticate(user=self.admin)
+
+        response = self.api.post(
+            "/api/v1/clientes/",
+            {
+                "nome": "Clínica sem médico",
+                "nif": "123456789",
+                "medicos_responsaveis": [],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("medicos_responsaveis", response.data)
 
     def test_only_administrators_can_list_collaborators_and_permissions(self):
         PermissaoColaborador.objects.create(

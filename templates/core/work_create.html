@@ -1,0 +1,157 @@
+{% extends "core/admin_base.html" %}
+{% load static %}
+
+{% block title %}Criar trabalho | Laboratório{% endblock %}
+{% block breadcrumb_label %}Criar trabalho{% endblock %}
+
+{% block admin_content %}
+<section aria-labelledby="page-title">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">CRIAÇÃO ADMINISTRATIVA</p>
+            <h1 id="page-title">Criar trabalho em nome de cliente</h1>
+            <p class="page-subtitle">Registe os dados clínicos e associe o trabalho a um cliente.</p>
+        </div>
+        <a class="btn btn-outline-gold" href="{% url 'core:work_list' %}">
+            Voltar aos trabalhos
+        </a>
+    </div>
+
+    <form class="work-create-form" id="work-create-form">
+        <section class="panel" aria-labelledby="client-details-heading">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">CLIENTE E PACIENTE</p>
+                    <h2 id="client-details-heading">Dados do pedido</h2>
+                </div>
+            </div>
+            <div class="work-create-grid">
+                <div class="work-filter-group">
+                    <label for="work-client">Cliente *</label>
+                    <select class="form-select" id="work-client" name="cliente" required>
+                        <option value="">A carregar clientes…</option>
+                    </select>
+                </div>
+                <div class="work-filter-group">
+                    <label for="work-patient">Nome do paciente *</label>
+                    <input class="form-control" id="work-patient" name="paciente_nome"
+                           type="text" maxlength="255" autocomplete="off"
+                           placeholder="Nome completo" required>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" aria-labelledby="work-details-heading">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">DADOS CLÍNICOS</p>
+                    <h2 id="work-details-heading">Configuração do trabalho</h2>
+                </div>
+            </div>
+            <div class="work-create-grid">
+                <div class="work-filter-group">
+                    <label for="work-type">Tipo de trabalho *</label>
+                    <select class="form-select" id="work-type" name="tipo_trabalho" required>
+                        <option value="">A carregar tipos de trabalho…</option>
+                    </select>
+                </div>
+
+                <fieldset class="work-create-field work-create-field-wide">
+                    <legend>Materiais necessários</legend>
+                    <div class="work-create-material-entry">
+                        <label class="visually-hidden" for="material-name">Nome do material</label>
+                        <input class="form-control" id="material-name" type="text"
+                               maxlength="150" placeholder="Escreva o material">
+                        <button class="permission-action" id="add-material" type="button">
+                            Adicionar
+                        </button>
+                    </div>
+                    <div class="work-create-materials" id="work-materials"
+                         aria-live="polite"></div>
+                    <p class="profile-hint">A indicação de materiais é opcional.</p>
+                </fieldset>
+
+                <fieldset class="work-create-field work-create-field-wide">
+                    <legend>Dentes envolvidos</legend>
+                    <div class="odontogram-heading">
+                        <span>Selecione os dentes aplicáveis</span>
+                        <div class="odontogram-controls">
+                            <button class="permission-action" id="select-all-teeth" type="button">
+                                Selecionar todos
+                            </button>
+                            <button class="permission-action" id="clear-teeth" type="button">
+                                Remover todos
+                            </button>
+                        </div>
+                    </div>
+                    <div class="odontogram" role="group" aria-label="Odontograma">
+                        <div class="odontogram-jaw">
+                            <span class="odontogram-jaw-label">Arcada superior</span>
+                            <div class="odontogram-teeth odontogram-upper"
+                                 id="upper-teeth" aria-label="Dentes da arcada superior"></div>
+                        </div>
+                        <div class="odontogram-jaw">
+                            <span class="odontogram-jaw-label">Arcada inferior</span>
+                            <div class="odontogram-teeth odontogram-lower"
+                                 id="lower-teeth" aria-label="Dentes da arcada inferior"></div>
+                        </div>
+                    </div>
+                    <p class="profile-hint" id="teeth-selection-summary"
+                       role="status" aria-live="polite">Nenhum dente selecionado.</p>
+                </fieldset>
+
+                <div class="work-filter-group">
+                    <label for="work-due-date">Data de entrega prevista</label>
+                    <input class="form-control" id="work-due-date" name="data_limite"
+                           type="date">
+                </div>
+
+                <div class="work-filter-group work-create-field-wide">
+                    <label for="work-notes">Notas adicionais</label>
+                    <textarea class="form-control" id="work-notes" name="observacoes"
+                              rows="4" maxlength="5000"
+                              placeholder="Indicações ou observações clínicas"></textarea>
+                </div>
+
+                <fieldset class="work-create-field work-create-field-wide">
+                    <legend>Ficheiros de apoio</legend>
+                    <div class="work-create-uploads">
+                        <label class="work-create-upload">
+                            <input class="work-create-file-input" id="image-files"
+                                   type="file" accept="image/png,image/jpeg,image/webp,image/gif"
+                                   multiple>
+                            <span aria-hidden="true">＋</span>
+                            Selecionar imagens
+                        </label>
+                        <label class="work-create-upload">
+                            <input class="work-create-file-input" id="other-files"
+                                   type="file" multiple>
+                            <span aria-hidden="true">⌁</span>
+                            Outro ficheiro
+                        </label>
+                    </div>
+                    <div class="work-create-files" id="work-files"
+                         aria-live="polite"></div>
+                    <p class="profile-hint">
+                        Até 5 ficheiros, com máximo de 25 MB por ficheiro e 50 MB no total.
+                    </p>
+                </fieldset>
+            </div>
+        </section>
+
+        <p class="dashboard-status" id="work-create-status" role="status"
+           aria-live="polite">A carregar dados do formulário…</p>
+        <div class="work-create-actions">
+            <button class="btn btn-gold" id="create-work-button" type="submit" disabled>
+                Criar trabalho
+            </button>
+            <a class="text-link" id="created-work-link"
+               href="{% url 'core:work_list' %}" hidden>Voltar à lista de trabalhos →</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/admin-work-create.js' %}"></script>
+{% endblock %}

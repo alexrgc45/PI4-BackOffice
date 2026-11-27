@@ -1,69 +1,82 @@
 {% extends "core/admin_base.html" %}
 {% load static %}
 
-{% block title %}Clientes | Laboratório{% endblock %}
-{% block breadcrumb_label %}Clientes{% endblock %}
+{% block title %}Gestão de clientes | Laboratório{% endblock %}
+{% block breadcrumb_label %}Gestão de clientes{% endblock %}
 
 {% block admin_content %}
-<section aria-labelledby="page-title">
-    <div class="page-heading">
+<section class="client-management" aria-labelledby="page-title">
+    <div class="page-heading client-page-heading">
         <div>
             <p class="eyebrow">GESTÃO DE CLIENTES</p>
-            <h1 id="page-title">Clientes</h1>
-            <p class="page-subtitle">Consulte clientes e respetivas informações de contacto.</p>
+            <h1 id="page-title">Gestão de Clientes</h1>
         </div>
-        <button class="btn btn-gold" id="refresh-clients" type="button">Atualizar lista</button>
+        <a class="btn btn-gold client-create-button" href="{% url 'core:client_create' %}">
+            <span aria-hidden="true">+</span>
+            Novo cliente
+        </a>
     </div>
 
-    <section class="panel work-list-panel" aria-labelledby="client-list-heading">
-        <div class="panel-heading">
-            <div>
-                <p class="eyebrow">REGISTOS DO LABORATÓRIO</p>
-                <h2 id="client-list-heading">Todos os clientes</h2>
-            </div>
-            <span class="panel-count" id="client-count">— clientes</span>
-        </div>
+    <div class="client-overview-heading">
+        <h2>Clínicas, médicos e pacientes associados</h2>
+        <p>O cliente é a clínica, representada por um ou vários médicos; os pacientes existem apenas no contexto dos trabalhos enviados.</p>
+    </div>
 
-        <div class="work-toolbar">
-            <div class="work-filter-group">
-                <label for="client-search">Pesquisar</label>
-                <input class="form-control" id="client-search" type="search"
-                       placeholder="Nome, NIF, e-mail ou telefone">
+    <p class="dashboard-status client-page-status" id="client-list-status"
+       role="status" aria-live="polite">A carregar clientes…</p>
+
+    <div class="client-management-grid">
+        <section class="panel client-registry-panel" aria-labelledby="client-list-heading">
+            <div class="panel-heading client-panel-heading">
+                <div>
+                    <h2 id="client-list-heading">Clientes registados</h2>
+                    <span class="panel-count" id="client-count">A carregar…</span>
+                </div>
+                <button class="permission-action" id="refresh-clients" type="button">
+                    Atualizar
+                </button>
             </div>
-            <div class="work-filter-group">
-                <label for="client-status">Estado</label>
+
+            <div class="client-registry-tools">
+                <label class="visually-hidden" for="client-search">Pesquisar clientes</label>
+                <input class="form-control" id="client-search" type="search"
+                       placeholder="Pesquisar clientes">
+                <label class="visually-hidden" for="client-status">Filtrar por estado</label>
                 <select class="form-select" id="client-status">
                     <option value="">Todos os clientes</option>
                     <option value="active">Ativos</option>
                     <option value="inactive">Inativos</option>
                 </select>
             </div>
-        </div>
 
-        <p class="dashboard-status work-list-status" id="client-list-status"
-           role="status" aria-live="polite">A carregar clientes…</p>
+            <ul class="client-registry-list" id="client-rows"
+                aria-label="Clientes registados"></ul>
+        </section>
 
-        <div class="table-responsive">
-            <table class="table work-table admin-work-table">
-                <thead>
-                    <tr>
-                        <th scope="col">Cliente</th>
-                        <th scope="col">NIF</th>
-                        <th scope="col">E-mail</th>
-                        <th scope="col">Telefone</th>
-                        <th scope="col">Conta</th>
-                        <th scope="col">Estado</th>
-                    </tr>
-                </thead>
-                <tbody id="client-rows">
-                    <tr><td class="table-placeholder" colspan="6">A carregar clientes…</td></tr>
-                </tbody>
-            </table>
+        <div class="client-detail-column">
+            <section class="panel client-detail-panel" aria-label="Detalhes do cliente selecionado">
+                <div id="client-detail" aria-live="polite">
+                    <p class="client-empty-state">Selecione um cliente para consultar os seus dados.</p>
+                </div>
+            </section>
+
+            <section class="panel client-doctors-panel" aria-labelledby="client-doctors-heading">
+                <div class="panel-heading client-panel-heading">
+                    <div>
+                        <h2 id="client-doctors-heading">Médicos responsáveis pela clínica</h2>
+                        <span class="panel-count" id="client-doctors-count">— médicos</span>
+                    </div>
+                </div>
+                <div class="client-doctors-list" id="client-doctors"
+                     aria-live="polite">
+                    <p class="client-empty-state">Selecione um cliente para ver os médicos associados.</p>
+                </div>
+            </section>
         </div>
-    </section>
+    </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="{% static 'js/admin-client-list.js' %}"></script>
+<script type="module" src="{% static 'js/admin-client-list.js' %}?v=2"></script>
 {% endblock %}

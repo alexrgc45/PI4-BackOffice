@@ -42,7 +42,7 @@ function renderCollaborators() {
             ? "Ainda não existem colaboradores registados."
             : "Nenhum colaborador corresponde aos filtros selecionados.";
         const cell = createCell(message, "table-placeholder");
-        cell.colSpan = 3;
+        cell.colSpan = 4;
         row.append(cell);
         collaboratorRows.append(row);
         return;
@@ -58,7 +58,15 @@ function renderCollaborators() {
         statusBadge.textContent = collaborator.ativo ? "Ativo" : "Inativo";
         statusCell.append(statusBadge);
 
-        row.append(statusCell);
+        const actionCell = document.createElement("td");
+        const editLink = document.createElement("a");
+        editLink.className = "permission-action";
+        editLink.href = `/colaboradores/${encodeURIComponent(String(collaborator.id))}/editar/`;
+        editLink.textContent = "Editar";
+        editLink.setAttribute("aria-label", `Editar colaborador ${collaborator.nome}`);
+        actionCell.append(editLink);
+
+        row.append(statusCell, actionCell);
         collaboratorRows.append(row);
     }
 }

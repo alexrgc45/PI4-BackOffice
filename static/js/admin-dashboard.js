@@ -1,5 +1,5 @@
 import { apiRequest, clearSession } from "./api.js";
-import { createCell, formatDate, statusTone } from "./admin-ui.js";
+import { createCell, formatDate } from "./admin-ui.js";
 
 const workRows = document.querySelector("#work-rows");
 const receptionList = document.querySelector("#reception-list");
@@ -7,6 +7,21 @@ const dashboardStatus = document.querySelector("#dashboard-status");
 const logoutButton = document.querySelector("#logout-button");
 
 const completedStates = new Set(["Concluído", "Entregue"]);
+
+function dashboardStatusTone(state) {
+    if (state === "Em Processamento") {
+        return "dashboard-work-processing";
+    }
+    if (state === "Em Prova") {
+        return "dashboard-work-proof";
+    }
+    if (state === "Em Espera") {
+        return "dashboard-work-waiting";
+    }
+    return completedStates.has(state)
+        ? "dashboard-work-complete"
+        : "dashboard-work-default";
+}
 
 logoutButton.addEventListener("click", () => {
     clearSession();
@@ -57,7 +72,7 @@ function renderWorks(works) {
 
         const stateCell = document.createElement("td");
         const badge = document.createElement("span");
-        badge.className = `status-pill ${statusTone(work.estado)}`;
+        badge.className = `status-pill ${dashboardStatusTone(work.estado)}`;
         badge.textContent = work.estado;
         stateCell.append(badge);
         row.append(stateCell, createCell(formatDate(work.data_limite)));

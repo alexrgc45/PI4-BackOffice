@@ -21,6 +21,14 @@ def work_list(request):
     )
 
 
+def work_create(request):
+    return render(
+        request,
+        "core/work_create.html",
+        {"active_page": "works"},
+    )
+
+
 def reception_work_list(request):
     return render(
         request,
@@ -45,11 +53,42 @@ def client_list(request):
     )
 
 
+def client_create(request):
+    return render(
+        request,
+        "core/client_create.html",
+        {"active_page": "clients", "is_editing": False},
+    )
+
+
+def client_edit(request, client_id):
+    return render(
+        request,
+        "core/client_create.html",
+        {
+            "active_page": "clients",
+            "client_id": client_id,
+            "is_editing": True,
+        },
+    )
+
+
 def collaborator_list(request):
     return render(
         request,
         "core/collaborator_list.html",
         {"active_page": "collaborators"},
+    )
+
+
+def collaborator_edit(request, collaborator_id):
+    return render(
+        request,
+        "core/collaborator_edit.html",
+        {
+            "active_page": "collaborators",
+            "collaborator_id": collaborator_id,
+        },
     )
 
 

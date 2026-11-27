@@ -49,6 +49,19 @@ class Cliente(models.Model):
         db_table = 'cliente'
 
 
+class MedicoResponsavel(models.Model):
+    cliente = models.ForeignKey(
+        Cliente,
+        models.CASCADE,
+        related_name='medicos_responsaveis',
+    )
+    nome = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = 'medico_responsavel'
+        ordering = ('nome', 'pk')
+
+
 class Colaborador(models.Model):
     utilizador = models.OneToOneField('Utilizador', models.DO_NOTHING, primary_key=True)
     nome = models.CharField(max_length=255)
